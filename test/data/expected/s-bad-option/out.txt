@@ -1,0 +1,3 @@
+usage: wad-shuffle-dir.py [-h] [-d DEUTEX_PATH] [-f] [-i] [-k] [-s SEED] [-v]
+                          IWAD OUT-DIR [LUMP [LUMP ...]]
+wad-shuffle-dir.py: error: too few arguments

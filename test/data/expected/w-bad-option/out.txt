@@ -1,0 +1,4 @@
+usage: wad-to-lump.py [-h] [-1] [-c] [-d OUTPUT_DIR] [-o OUTPUT] [-f] [-l]
+                      [-q] [-s] [-v]
+                      path [change [change ...]]
+wad-to-lump.py: error: too few arguments
