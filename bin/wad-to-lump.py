@@ -25,11 +25,14 @@ import sys
 # Command line arguments as a hash map.
 args      = {} # Command line arguments.
 
+# Matches the directory leading up to the final path element.
+dir_patt = re.compile("^.*/")
+
 # Pattern used region files.
 file_patt = re.compile("^(\d+)-(\S+)$")
 
 # The names of the indexes for "regions".
-index_names = ("Offset", "Count", "Size", "Name", "File", "Contents", "IsLump")
+index_names = ("Offset", "Count", "Size", "NS", "Name", "File", "Contents", "IsLump")
 
 # True if the input argument is a directory.
 in_is_dir = False
@@ -37,18 +40,26 @@ in_is_dir = False
 # Region names that are not lumps.
 non_lumps = {"header", "dir", "notindir"}
 
-# Format used for output (-s option).
-region_fmt  = "%10s %.0s%10s %8s %.0s%.0s%6s"
+# From offset to the start of a namespace. Initial default namespace is "".
+offset_to_namespace = {0:""}
 
-# A list of regions for the WAD file. Each regions tuple has the following
-# layout by index:
-#   0 offset
-#   1 number
-#   2 size
-#   3 name
-#   4 file_name
-#   5 contents
-#   6 is_lump
+# Template used for "region_fmt".
+region_fmt_template  = "%10s %.0s%10s _NS_%9s %.0s%.0s%6s"
+
+# Format used for output (-s option).
+region_fmt = None
+
+# Indexes into each region tuple.
+r_offset    = 0
+r_number    = 1
+r_size      = 2
+r_namespace = 3
+r_name      = 4
+r_file_name = 5
+r_contents  = 6
+r_is_lump   = 7
+
+# A list of regions tuples. See above for the layout.
 regions   = []
 
 # The type of the WAD.
@@ -89,15 +100,17 @@ def apply_changes():
             cmap[name] = value
 
     for region in regions[:]:
-        name = region[3].lower()
+        if len(region) < 8:
+            print("len="  + str(len(region)) + " region=" + str(region))
+        name = region[r_name].lower()
         if name in cmap:
             value = cmap[name]
             if value is None:
                 regions.remove(region)
             else:
                 if value != self:
-                    region[2] = len(value)
-                    region[5] = value
+                    region[r_size] = len(value)
+                    region[r_contents] = value
                 if args.once:
                     # Delete the next region by the same name.
                     cmap[name] = None
@@ -130,6 +143,8 @@ def parse_args():
         "location.")
     parser.add_argument("-o", "--output",
         help="Output filename. A new WAD will created at this location.")
+    parser.add_argument("-n", "--namespace", action="store_true",
+        help="Namespace support. Organize output by by namespace.")
     parser.add_argument("-f", "--force", action="store_true",
         help="Force. Overwrite existing output.")
     parser.add_argument("-l", "--lumps", action="store_true",
@@ -154,11 +169,21 @@ def parse_args():
 # order.
 def read_regions():
     global in_is_dir
+    global offset_to_namespace
+    global region_fmt
     global regions
     global wad_type
 
+    # Current namespace as determined by *_START and *_END lumps.
+    current_ns = ""
+
+    # Format to use for output.
+    region_fmt = region_fmt_template.replace("_NS_", "%5s "
+                                             if args.namespace else "%.0s")
+
     in_is_dir = os.path.isdir(args.path)
     if in_is_dir:
+        # Input is a directory.
         if not os.access(args.path, os.R_OK):
             fatal("Input directory \"" + args.path
                   + "\" does not have read permission.")
@@ -195,9 +220,14 @@ def read_regions():
                       "WAD type. Allowed WAD types: %s") % (
                         path, wad_type, str(wad_types)))
                 fhand.close()
-            bisect.insort(regions, [0, num, os.path.getsize(path), region_name, path,
+            elif region_name.endswith("_START"):
+                print("startish=" + region_name)
+                ns = region_name[0:len(region_name) - len("_START")]
+                print("ns=" + ns)
+            bisect.insort(regions, [0, num, os.path.getsize(path), None, region_name, path,
                                     None, region_name not in non_lumps])
     else:
+        # Input is a file.
         try:
             fhand =  open(args.path, "rb")
         except IOError as e:
@@ -211,11 +241,13 @@ def read_regions():
                       args.path, wad_type, str(wad_types)))
 
         # Add the header to the list of regions.
-        bisect.insort(regions, [0, 0, 12, "header", None, None, False])
+        bisect.insort(regions, [0, 0, 12, "", "header", None, None, False])
 
-        # Add the regions to the list of regions.
-        bisect.insort(regions, [directory_offset, 0, directory_entries * 16,
-                                "dir", None, None, False])
+        # Add the directory to the list of regions. The count is the max signed
+        # 32 bit integer so that the directory is last.
+        bisect.insort(regions, [directory_offset, (1 << 31) - 1,
+                                directory_entries * 16, "", "dir", None, None,
+                                False])
 
         # Seek to the regions and start reading regions.
         current_offset = 0
@@ -229,7 +261,32 @@ def read_regions():
             offset, region_size, region_name = unpack_str(
                 "<II8s", dent_bytes)
             region_name = region_name.partition("\x00")[0]
-            region = [offset, region_number, region_size, region_name, None, None, True]
+            region_ns = current_ns
+            if region_name.endswith("_START"):
+                prefix = region_name[0:len(region_name) - len("_START")]
+                if current_ns:
+                    current_ns = current_ns + "/" + prefix
+                else:
+                    current_ns = prefix
+                region_ns = current_ns
+                offset_to_namespace[offset] = current_ns
+            elif region_name.endswith("_END"):
+                prefix = region_name[0:len(region_name) - len("_END")]
+                if current_ns:
+                    final_ns = dir_patt.sub("", current_ns)
+                    if prefix == final_ns:
+                        current_ns = current_ns[0: len(current_ns) -
+                                                 len("/" + final_ns)]
+                        if not current_ns:
+                            current_ns = ""
+                    else:
+                        # This shouldn't happen.
+                        warn("Ignoring END \"" + region_name +
+                             "\" because the last NS is \"" + final_ns + ".")
+                offset_to_namespace[offset] = current_ns
+
+            region = [offset, region_number, region_size, region_ns,
+                      region_name, None, None, True]
             if not region_name:
                 if offset or region_size:
                     warn("Region (" + (region_fmt % tuple(region)) + ") has no "
@@ -237,7 +294,7 @@ def read_regions():
                 continue
             if not offset:
                 offset = current_offset
-                region[0] = offset
+                region[r_offset] = offset
             bisect.insort(regions, region)
             current_offset = offset + region_size
         fhand.close()
@@ -245,15 +302,27 @@ def read_regions():
         # Add unreferenced regions ("notindir").
         wad_size = os.path.getsize(args.path)
         current_offset = 0
+        region_ns = current_ns
+        offsets = offset_to_namespace.keys()
+        offsets.sort()
         for region in regions:
-            if region[0] > current_offset:
+            if not region[r_size]:
+                # Only consider regions that have size.
+                continue
+            if region[r_offset] > current_offset:
+                ns_index = bisect.bisect(offsets, current_offset) - 1
+                region_ns = offset_to_namespace[offsets[ns_index]]
                 bisect.insort(regions, [current_offset, 0,
-                             region[0] - current_offset, "notindir", None, None, False])
-            current_offset = region[0] + region[2]
+                             region[r_offset] - current_offset, region_ns,
+                                    "notindir", None, None, False])
+            current_offset = region[r_offset] + region[r_size]
+            last_size = region[r_size]
+
         # Extra space at the end of the WAD?
         if wad_size > current_offset:
             bisect.insort(regions, [current_offset, 0,
-                          wad_size - current_offset, "notindir", None, None, False])
+                          wad_size - current_offset, current_ns, "notindir",
+                          None, None, False])
 
     verbose(str(len(regions)) + " regions read.")
 
@@ -306,7 +375,7 @@ def write_regions():
 
     # Zero based due to the header.
     digits = len(str(len(regions) - 1))
-    file_fmt = "%%0%dd-%%s" % digits
+    file_fmt = "%%s%%0%dd-%%s" % digits
     if args.output:
         count = 0
         offset = 12
@@ -324,35 +393,45 @@ def write_regions():
         print(region_fmt % index_names)
         print(region_fmt % tuple(["-" * len(x) for x in index_names]))
     for region in regions:
-        if args.lumps and not region[6]:
+        if args.lumps and not region[r_is_lump]:
             # It's not a region and user only wants lumps.
             continue
         if args.show:
             print(region_fmt % tuple(region))
         if args.output or args.output_dir:
-            if region[5]:
-                region_contents = region[5]
+            if region[r_contents]:
+                region_contents = region[r_contents]
             else:
                 if in_is_dir:
                     try:
-                        fhand = open(region[4], "rb")
+                        fhand = open(region[r_file_name], "rb")
                     except IOError:
                         # Permission issue with region file?
-                        fatal("Unable to open region file path \"" + region[4] + "\"")
+                        fatal("Unable to open region file path \"" +
+                              region[r_file_name] + "\"")
                     region_contents = fhand.read()
                     fhand.close()
                 else:
-                    in_fhand.seek(region[0])
-                    region_contents = in_fhand.read(region[2])
-        if args.output and region[6]:
+                    in_fhand.seek(region[r_offset])
+                    region_contents = in_fhand.read(region[r_size])
+        if args.output and region[r_is_lump]:
             out_fhand.write(region_contents)
-            region_name_wad  = region[3] if args.case else region[3].upper()
-            directory.append((offset, region[2], region_name_wad))
+            region_name_wad  = region[r_name] if args.case else region[r_name].upper()
+            directory.append((offset, region[r_size], region_name_wad))
             count += 1
-            offset += region[2]
+            offset += region[r_size]
         if args.output_dir:
-            region_name_file = region[3] if args.case else region[3].lower()
-            region_file = file_fmt % (index, region_name_file)
+            region_name_file = region[r_name] if args.case else region[r_name].lower()
+            region_prefix = region[r_namespace] if args.case else region[r_namespace].lower() \
+                if args.namespace else ""
+            if region_prefix:
+                region_dir = args.output_dir + "/" + region_prefix
+                if not os.path.exists(region_dir):
+                    os.makedirs(region_dir)
+                region_prefix += "/"
+            else:
+                region_dir = args.output_dir
+            region_file = file_fmt % (region_prefix, index, region_name_file)
             with open(args.output_dir + "/" + region_file, "wb") as out_hand:
                 out_hand.write(region_contents)
             index += 1
