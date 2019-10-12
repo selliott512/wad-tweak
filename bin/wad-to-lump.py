@@ -19,6 +19,7 @@ import os
 import re
 import struct
 import sys
+from __builtin__ import file
 
 # Globals
 
@@ -100,8 +101,6 @@ def apply_changes():
             cmap[name] = value
 
     for region in regions[:]:
-        if len(region) < 8:
-            print("len="  + str(len(region)) + " region=" + str(region))
         name = region[r_name].lower()
         if name in cmap:
             value = cmap[name]
@@ -119,6 +118,20 @@ def apply_changes():
 def fatal(msg):
     warn(msg)
     sys.exit(1)
+
+# Like a recursive os.listdir where the keys are the base names of the files,
+# and the values are paths relative to "dir".
+def file_map(dir):
+    fmap = {}
+    for file in os.listdir(dir):
+        path = dir + "/" + file
+        if os.path.isdir(path):
+            # A directory. Recursively call this method and append.
+            fmap.update(file_map(path))
+        else:
+            # A file. Just add it.
+            fmap[file] = path
+    return fmap
 
 # Print a message to stdout. It's flushed.
 def message(msg):
@@ -187,12 +200,11 @@ def read_regions():
         if not os.access(args.path, os.R_OK):
             fatal("Input directory \"" + args.path
                   + "\" does not have read permission.")
-        files = os.listdir(args.path)
-        files.sort()
+        fmap = file_map(args.path)
         digits = None
         last_num = None
-        for fl in files:
-            path = os.path.join(args.path, fl)
+        for fl in sorted(fmap.keys()):
+            path = fmap[fl]
             if not os.path.isfile(path):
                 warn("Ignoring non-file \"" + path + "\".")
                 continue
@@ -221,9 +233,7 @@ def read_regions():
                         path, wad_type, str(wad_types)))
                 fhand.close()
             elif region_name.endswith("_START"):
-                print("startish=" + region_name)
                 ns = region_name[0:len(region_name) - len("_START")]
-                print("ns=" + ns)
             bisect.insort(regions, [0, num, os.path.getsize(path), None, region_name, path,
                                     None, region_name not in non_lumps])
     else:
