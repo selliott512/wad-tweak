@@ -194,6 +194,7 @@ def read_regions():
     region_fmt = region_fmt_template.replace("_NS_", "%5s "
                                              if args.namespace else "%.0s")
 
+    args_plen = len(args.path)
     in_is_dir = os.path.isdir(args.path)
     if in_is_dir:
         # Input is a directory.
@@ -234,8 +235,11 @@ def read_regions():
                 fhand.close()
             elif region_name.endswith("_START"):
                 ns = region_name[0:len(region_name) - len("_START")]
-            bisect.insort(regions, [0, num, os.path.getsize(path), None, region_name, path,
-                                    None, region_name not in non_lumps])
+            # The namespace is just the leading portion of the path.
+            current_ns = path[args_plen + 1:len(path) - len(fl) - 1]
+            bisect.insort(regions, [0, num, os.path.getsize(path), current_ns,
+                                    region_name, path, None,
+                                    region_name not in non_lumps])
     else:
         # Input is a file.
         try:
