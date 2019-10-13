@@ -72,6 +72,14 @@ wtl_tests=(
     "$l -1svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir \
         __eureka=\"the-eureka\" gl_map01=@ gl_pvs gl_ssect=:\$source_dir/gl_ssect \
         notindir=\"the-notindir\" "
+        
+    # Similar to w-in-wad, but with namespace support (-n).
+    w-in-wad-ns             t
+    "$l -nsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad"
+    
+    # Similar to w-in-dir, but with namespace support (-n).
+    w-in-dir-ns             t
+    "$l -nsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
 
     # A command line option that not supported.
     w-bad-option            f

@@ -1,0 +1,39 @@
+36 regions read.
+    Offset       Size    NS      Name IsLump
+    ------       ----    --      ---- ------
+         0         12          header  False
+        12         34         BSUBINT   True
+        46          0     F   F_START   True
+        46         32     F   BSUBINF   True
+        78          0  F/F1  F1_START   True
+        78         15  F/F1    XINFF1   True
+        93         15  F/F1    YINFF1   True
+       108          0  F/F1    F1_END   True
+       108          0  F/F2  F2_START   True
+       108         15  F/F2    XINFF2   True
+       123         15  F/F2    YINFF2   True
+       138          0  F/F2    F2_END   True
+       138          0  F/F3  F3_START   True
+       138         15  F/F3    XINFF3   True
+       153         15  F/F3    YINFF3   True
+       168          0  F/F3    F3_END   True
+       168         31     F   ASUBINF   True
+       199          0     F     F_END   True
+       199          0     P   P_START   True
+       199         32     P   BSUBINP   True
+       231          0  P/P1  P1_START   True
+       231         15  P/P1    XINPP1   True
+       246         15  P/P1    YINPP1   True
+       261          0  P/P1    P1_END   True
+       261          0  P/P2  P2_START   True
+       261         15  P/P2    XINPP2   True
+       276         15  P/P2    YINPP2   True
+       291          0  P/P2    P2_END   True
+       291          0  P/P3  P3_START   True
+       291         15  P/P3    XINPP3   True
+       306         15  P/P3    YINPP3   True
+       321          0  P/P3    P3_END   True
+       321         31     P   ASUBINP   True
+       352          0     P     P_END   True
+       352         33         ASUBINT   True
+       385        544             dir  False
