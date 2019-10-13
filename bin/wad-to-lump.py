@@ -63,8 +63,8 @@ r_is_lump   = 7
 # A list of regions tuples. See above for the layout.
 regions   = []
 
-# The type of the WAD.
-wad_type  = ""
+# The type of the WAD. Default to PWAD.
+wad_type  = "PWAD"
 
 # Possible WAD types.
 wad_types = {"IWAD", "PWAD"}
@@ -187,6 +187,9 @@ def read_regions():
     global regions
     global wad_type
 
+    # True if a header has been processed.
+    header_seen = False
+
     # Current namespace as determined by *_START and *_END lumps.
     current_ns = ""
 
@@ -223,9 +226,10 @@ def read_regions():
                      "\" has already been used.")
                 continue
             if region_name == "header":
-                if wad_type:
+                if header_seen:
                     warn("Ignoring duplicate header \"" + path + "\".")
                     continue
+                header_seen = True
                 fhand =  open(path, "rb")
                 wad_type, = unpack_str("4s", fhand.read(4))
                 if wad_type not in wad_types:
