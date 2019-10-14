@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # wad2lump - Convert  WAD files and directories to and from each other
@@ -15,29 +15,21 @@ from __future__ import print_function
 
 import argparse
 import bisect
+import collections
 import os
 import re
 import struct
 import sys
-from __builtin__ import file
 
 # Globals
 
 # Command line arguments as a hash map.
 args      = {} # Command line arguments.
 
-# Groups of lumps that can be used to apply_changes. Each group name is
-# prefixed and suffixed with "_".
-lump_groups = {
-    # The ten standard lumps that should be in all WADs in this order preceded
-    # by the empty name lump.
-    "_standard_": ("THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS",
-                   "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP")}
-
 # Matches the directory leading up to the final path element.
 dir_patt = re.compile("^.*/")
 
-# Pattern used region files.
+# Match region files.
 file_patt = re.compile("^(\d+)-(\S+)$")
 
 # The names of the indexes for "regions".
@@ -45,6 +37,25 @@ index_names = ("Offset", "Count", "Size", "NS", "Name", "File", "Contents", "IsL
 
 # True if the input argument is a directory.
 in_is_dir = False
+
+# Groups (sets) of lumps that can be used to apply_changes. Each group name is
+# prefixed and suffixed with "_". Since regexes are a type of group in the sense
+# that they may match more one lump regexes are a possible value for each key.
+lump_groups = {
+    # The name lump. This should be the first lump.
+    "_name_"    : "E\dM\d|MAP\d\d",
+
+    # Empty lumps that mark the begin and end of each namespace.
+    "_ns_"      : ".*_(START|END)",
+
+    # The ten standard lumps that should be in all WADs in this order preceded
+    # by the empty name lump.
+    "_standard_": ("_name_", "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES",
+                   "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT",
+                   "BLOCKMAP")}
+
+# Match map names.
+name_patt = re.compile("E\dM\d|MAP\d\d")
 
 # Region names that are not lumps.
 non_lumps = {"header", "dir", "notindir"}
@@ -83,22 +94,37 @@ wad_types = {"IWAD", "PWAD"}
 def apply_changes():
     global regions
 
-    cmap = {}
+    if not len(args.changes):
+        return
+    cmap = collections.OrderedDict()
     self = {}
-    changes = []
-    for change in args.changes:
-        if change in lump_groups:
-            changes += lump_groups[change]
-        else:
-            changes.append(change)
+    changes = args.changes
+    while True:
+        new_changes = []
+        # True if a substitution happened, which requires another pass.
+        subst = False
+        for change in changes:
+            if change in lump_groups:
+                subst = True
+                lump_group = lump_groups[change]
+                if isinstance(lump_group, str):
+                    new_changes.append(lump_group)
+                else:
+                    new_changes += lump_group
+            else:
+                new_changes.append(change)
+        if not subst:
+            # No more substitutions - done.
+            break
+        changes = new_changes
     for change in changes:
         i = change.find("=")
         if i == -1:
             # Delete
-            cmap[change.lower()] = None
+            cmap[re.compile(change, re.IGNORECASE)] = None
         else:
             # Add or modify
-            name = change[:i].strip().lower()
+            name = change[:i].strip()
             cmd = change[i + 1:].strip()
             if cmd[0] == ":":
                 # Read from file.
@@ -112,25 +138,28 @@ def apply_changes():
                 value = cmd
             if isinstance(value, str):
                 value = value.encode("UTF-8")
-            cmap[name] = value
+            cmap[re.compile(name, re.IGNORECASE)] = value
 
     for region in regions[:]:
-        name = region[r_name].lower()
-        if name in cmap:
-            value = cmap[name]
-            if value is None:
-                if not args.invert:
-                    regions.remove(region)
-            else:
-                if value != self:
-                    region[r_size] = len(value)
-                    region[r_contents] = value
-                if args.once:
-                    # Delete the next region by the same name.
-                    cmap[name] = None
-        else:
-            if args.invert:
-                regions.remove(region)
+        name = region[r_name]
+        matched = False
+        for patt, value in cmap.items():
+            if patt.fullmatch(name):
+                matched = True
+                if value is None:
+                    if not args.invert:
+                        regions.remove(region)
+                else:
+                    if value != self:
+                        region[r_size] = len(value)
+                        region[r_contents] = value
+                    if args.once:
+                        # Delete the next region that matches the same pattern.
+                        cmap[patt] = None
+                # Only use the first matching pattern.
+                break
+        if (not matched) and args.invert:
+            regions.remove(region)
 
 # Write a fatal error message to stderr and exit.
 def fatal(msg):
@@ -341,8 +370,7 @@ def read_regions():
         wad_size = os.path.getsize(args.path)
         current_offset = 0
         region_ns = current_ns
-        offsets = offset_to_namespace.keys()
-        offsets.sort()
+        offsets = sorted(offset_to_namespace.keys())
         for region in regions:
             if not region[r_size]:
                 # Only consider regions that have size.
