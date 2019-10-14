@@ -26,6 +26,14 @@ from __builtin__ import file
 # Command line arguments as a hash map.
 args      = {} # Command line arguments.
 
+# Groups of lumps that can be used to apply_changes. Each group name is
+# prefixed and suffixed with "_".
+lump_groups = {
+    # The ten standard lumps that should be in all WADs in this order preceded
+    # by the empty name lump.
+    "_standard_": ("THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS",
+                   "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP")}
+
 # Matches the directory leading up to the final path element.
 dir_patt = re.compile("^.*/")
 
@@ -77,7 +85,13 @@ def apply_changes():
 
     cmap = {}
     self = {}
+    changes = []
     for change in args.changes:
+        if change in lump_groups:
+            changes += lump_groups[change]
+        else:
+            changes.append(change)
+    for change in changes:
         i = change.find("=")
         if i == -1:
             # Delete
