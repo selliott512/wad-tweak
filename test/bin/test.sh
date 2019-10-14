@@ -73,6 +73,12 @@ wtl_tests=(
         __eureka=\"the-eureka\" gl_map01=@ gl_pvs gl_ssect=:\$source_dir/gl_ssect \
         notindir=\"the-notindir\" "
         
+    # Same as test w-in-dir-changes, but invert (-i).
+    w-in-dir-changes-inv    t
+    "$l -isvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir \
+        __eureka=\"the-eureka\" gl_map01=@ gl_pvs gl_ssect=:\$source_dir/gl_ssect \
+        notindir=\"the-notindir\" "
+
     # Similar to w-in-wad, but with namespace support (-n).
     w-in-wad-ns             t
     "$l -nsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad"

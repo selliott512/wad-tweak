@@ -119,7 +119,8 @@ def apply_changes():
         if name in cmap:
             value = cmap[name]
             if value is None:
-                regions.remove(region)
+                if not args.invert:
+                    regions.remove(region)
             else:
                 if value != self:
                     region[r_size] = len(value)
@@ -127,6 +128,9 @@ def apply_changes():
                 if args.once:
                     # Delete the next region by the same name.
                     cmap[name] = None
+        else:
+            if args.invert:
+                regions.remove(region)
 
 # Write a fatal error message to stderr and exit.
 def fatal(msg):
@@ -174,6 +178,8 @@ def parse_args():
         help="Namespace support. Organize output by by namespace.")
     parser.add_argument("-f", "--force", action="store_true",
         help="Force. Overwrite existing output.")
+    parser.add_argument("-i", "--invert", action="store_true",
+        help="Invert. Invert the meaning of bare (no \"=\") lumps.")
     parser.add_argument("-l", "--lumps", action="store_true",
         help="Lumps. Only output actual lumps for -s, --show and " +
              "-d, --output-dir.")

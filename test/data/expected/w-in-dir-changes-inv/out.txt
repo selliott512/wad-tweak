@@ -1,0 +1,10 @@
+23 regions read.
+    Offset       Size      Name IsLump
+    ------       ----      ---- ------
+         0         12  notindir  False
+         0         12  notindir  False
+         0         12  gl_ssect   True
+         0          0    gl_pvs   True
+         0         12  notindir  False
+         0         88  gl_map01   True
+         0         10  __eureka   True
