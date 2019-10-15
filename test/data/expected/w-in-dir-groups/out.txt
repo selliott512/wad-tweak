@@ -1,0 +1,20 @@
+23 regions read.
+    Offset       Size      Name IsLump
+    ------       ----      ---- ------
+         0          0     map01   True
+         0         40    things   True
+         0        280  linedefs   True
+         0        720  sidedefs   True
+         0         20  ssectors   True
+         0          4    reject   True
+         0         12  notindir  False
+         0        130   sectors   True
+         0         12  notindir  False
+         0        240   gl_segs   True
+         0         20  gl_ssect   True
+         0         68  vertexes   True
+         0        288      segs   True
+         0        112     nodes   True
+         0        260  blockmap   True
+         0         12  notindir  False
+        44          9     added   True

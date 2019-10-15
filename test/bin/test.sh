@@ -57,32 +57,38 @@ wtl_tests=(
     w-in-dir                t
     "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
 
-    # Same as test in-dir, but lumps only (-l).
+    # Same as test w-in-dir, but lumps only (-l).
     w-in-dir-lumps          t
     "$l -lsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
 
-    # Same as test in-dir, but with changes.
+    # Same as test w-in-dir, but with changes.
     w-in-dir-changes        t
     "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir \
         __eureka=\"the-eureka\" gl_map01=@ gl_pvs gl_ssect=:\$source_dir/gl_ssect \
         notindir=\"the-notindir\" "
 
-    # Same as test in-dir-changes, but once (-1).
+    # Same as test w-in-dir-changes, but once (-1).
     w-in-dir-changes-once   t
     "$l -1svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir \
         __eureka=\"the-eureka\" gl_map01=@ gl_pvs gl_ssect=:\$source_dir/gl_ssect \
         notindir=\"the-notindir\" "
-        
+
     # Same as test w-in-dir-changes, but invert (-i).
     w-in-dir-changes-inv    t
     "$l -isvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir \
         __eureka=\"the-eureka\" gl_map01=@ gl_pvs gl_ssect=:\$source_dir/gl_ssect \
         notindir=\"the-notindir\" "
 
+    # Same as test w-in-dir, but with groups, regexes and an add. Also -i.
+    w-in-dir-groups         t
+    "$l -isvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir \
+        _standard_ \"GL_S.*\" +added=\"the-added\" \
+        notindir=\"the-notindir\" "
+
     # Similar to w-in-wad, but with namespace support (-n).
     w-in-wad-ns             t
     "$l -nsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad"
-    
+
     # Similar to w-in-dir, but with namespace support (-n).
     w-in-dir-ns             t
     "$l -nsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
