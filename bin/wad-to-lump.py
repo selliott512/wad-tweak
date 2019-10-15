@@ -96,6 +96,7 @@ def apply_changes():
 
     if not len(args.changes):
         return
+    amap = collections.OrderedDict()
     cmap = collections.OrderedDict()
     self = {}
     changes = args.changes
@@ -120,7 +121,10 @@ def apply_changes():
     for change in changes:
         i = change.find("=")
         if i == -1:
-            # Delete
+            if change[0] == "+":
+                fatal("Can not add bare lump \"" + change +
+                      "\ - what would the value be?")
+            # Delete or add (if -i).
             cmap[re.compile(change, re.IGNORECASE)] = None
         else:
             # Add or modify
@@ -138,10 +142,23 @@ def apply_changes():
                 value = cmd
             if isinstance(value, str):
                 value = value.encode("UTF-8")
-            cmap[re.compile(name, re.IGNORECASE)] = value
+            if name[0] == "+":
+                # For add the pattern is just the string given.
+                amap[name[1:]] = value
+            else:
+                # Ignore case for changes.
+                cmap[re.compile(name, re.IGNORECASE)] = value
 
+    # Apply changes to the regions using cmap.
+    max_offset = 0
+    max_number = 0
+    max_size   = 0
     for region in regions[:]:
         name = region[r_name]
+        if (name != "dir") and (region[r_number] > max_number):
+            max_offset = region[r_offset]
+            max_number = region[r_number]
+            max_size   = region[r_size]
         matched = False
         for patt, value in cmap.items():
             if patt.fullmatch(name):
@@ -160,6 +177,15 @@ def apply_changes():
                 break
         if (not matched) and args.invert:
             regions.remove(region)
+
+    # Add new regions using amap.
+    region_number = max_number + 1
+    region_offset = max_offset + max_size
+    for patt, value in amap.items():
+        bisect.insort(regions, [region_offset, region_number, len(value), "",
+                                patt, None, value, True])
+        region_number += 1
+        region_offset += len(value)
 
 # Write a fatal error message to stderr and exit.
 def fatal(msg):
