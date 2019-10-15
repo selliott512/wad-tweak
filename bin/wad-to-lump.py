@@ -220,17 +220,8 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # The following is sorted by long argument.
-    parser.add_argument("-1", "--once", action="store_true",
-        help="Each changed region should only occur once by name.")
     parser.add_argument("-c", "--case", action="store_true",
         help="Maintain the case of regions.")
-    parser.add_argument("-d", "--output-dir",
-        help="Output directory. Region files will be created at this " +
-        "location.")
-    parser.add_argument("-o", "--output",
-        help="Output filename. A new WAD will created at this location.")
-    parser.add_argument("-n", "--namespace", action="store_true",
-        help="Namespace support. Organize output by by namespace.")
     parser.add_argument("-f", "--force", action="store_true",
         help="Force. Overwrite existing output.")
     parser.add_argument("-i", "--invert", action="store_true",
@@ -238,6 +229,15 @@ def parse_args():
     parser.add_argument("-l", "--lumps", action="store_true",
         help="Lumps. Only output actual lumps for -s, --show and " +
              "-d, --output-dir.")
+    parser.add_argument("-n", "--namespace", action="store_true",
+        help="Namespace support. Organize output by by namespace.")
+    parser.add_argument("-1", "--once", action="store_true",
+        help="Each changed region should only occur once by name.")
+    parser.add_argument("-o", "--output",
+        help="Output filename. A new WAD will created at this location.")
+    parser.add_argument("-d", "--output-dir",
+        help="Output directory. Region files will be created at this " +
+        "location.")
     parser.add_argument("-q", "--quiet", action="store_true",
         help="Quiet (minimum output).")
     parser.add_argument("-s", "--show", action="store_true",
