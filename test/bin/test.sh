@@ -93,6 +93,12 @@ wtl_tests=(
     w-in-dir-ns             t
     "$l -nsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
 
+    # Test WAD to both output directory and output WAD.
+    w-in-wad-in-place       t
+    "cp \$source_dir/in.wad \$actual_dir/out.wad && \
+     chmod 644 \$actual_dir/out.wad
+     $l -vip \$actual_dir/out.wad _standard_"
+
     # A command line option that not supported.
     w-bad-option            f
     "$l -v --bad-option" )

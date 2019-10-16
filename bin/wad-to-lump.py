@@ -18,8 +18,10 @@ import bisect
 import collections
 import os
 import re
+import shutil
 import struct
 import sys
+import tempfile
 
 # Globals
 
@@ -81,6 +83,9 @@ r_is_lump   = 7
 
 # A list of regions tuples. See above for the layout.
 regions   = []
+
+# The name of this script.
+this_name= os.path.basename(sys.argv[0]).replace(".py", "")
 
 # The type of the WAD. Default to PWAD.
 wad_type  = "PWAD"
@@ -235,6 +240,8 @@ def parse_args():
         help="Each changed region should only occur once by name.")
     parser.add_argument("-o", "--output",
         help="Output filename. A new WAD will created at this location.")
+    parser.add_argument("-p", "--in-place", action="store_true",
+        help="In place. The input WAD and output WAD are the same.")
     parser.add_argument("-d", "--output-dir",
         help="Output directory. Region files will be created at this " +
         "location.")
@@ -250,6 +257,11 @@ def parse_args():
         help="Changes to apply.")
 
     args = parser.parse_args()
+
+    # Option consistency checks.
+    if args.in_place and (args.output or args.output_dir):
+        fatal("For in place (-p, --in-place option) output location can not " +
+              "be specified.")
 
     return args
 
@@ -468,14 +480,20 @@ def write_regions():
     # Zero based due to the header.
     digits = len(str(len(regions) - 1))
     file_fmt = "%%s%%0%dd-%%s" % digits
-    if args.output:
+    if args.in_place:
+        # TODO: This may not be the best way of working with temporary files,
+        # but it's good enough.
+        out_wad = tempfile.NamedTemporaryFile(prefix=this_name + "-").name
+    else:
+        out_wad = args.output
+    if out_wad:
         count = 0
         offset = 12
         directory = []
         try:
-            out_fhand = open(args.output, "wb")
+            out_fhand = open(out_wad, "wb")
         except IOError as e:
-            fatal("Unable to create output WAD \"" + args.output + "\": "
+            fatal("Unable to create output WAD \"" + out_wad + "\": "
                   + str(e))
 
         out_fhand.write(struct.pack("<4sII", wad_type.encode("UTF-8"), 0, 0))
@@ -490,7 +508,7 @@ def write_regions():
             continue
         if args.show:
             print(region_fmt % tuple(region))
-        if args.output or args.output_dir:
+        if out_wad or args.output_dir:
             if region[r_contents]:
                 region_contents = region[r_contents]
             else:
@@ -506,7 +524,7 @@ def write_regions():
                 else:
                     in_fhand.seek(region[r_offset])
                     region_contents = in_fhand.read(region[r_size])
-        if args.output and region[r_is_lump]:
+        if out_wad and region[r_is_lump]:
             out_fhand.write(region_contents)
             region_name_wad  = region[r_name] if args.case else region[r_name].upper()
             directory.append((offset, region[r_size], region_name_wad))
@@ -527,7 +545,9 @@ def write_regions():
             with open(args.output_dir + "/" + region_file, "wb") as out_hand:
                 out_hand.write(region_contents)
             index += 1
-    if args.output:
+    if not in_is_dir:
+        in_fhand.close()
+    if out_wad:
         # Write the new directory.
         for dent in directory:
             out_fhand.write(struct.pack("<II8s", *(dent[0:2] + (
@@ -535,6 +555,15 @@ def write_regions():
         # Go back to the header to write the directory information.
         out_fhand.seek(4)
         out_fhand.write(struct.pack("<II", count, offset))
+
+        if args.in_place:
+            out_fhand.flush()
+            try:
+                shutil.copyfile(out_wad, args.path)
+            except IOError as e:
+                fatal("Unable to overwrite original WAD \"" + args.path +
+                      "\" for in place: " + str(e))
+
         out_fhand.close()
 
 # Log a message to stdout if verbose.
