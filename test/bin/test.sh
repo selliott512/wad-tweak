@@ -29,18 +29,21 @@ fi
 
 # Globals
 
-bname="${0##*/}"                    # Basename of this script.
-dname="${0%/*}"                     # Directory that this script is in.
-root=$(realpath "$dname/../..")     # Project root.
-test_data="$root/test/data"         # Test data files.
-tmp_dir="/tmp/wad-tweak-$bname.$$"  # Temp directory
-doom2_wad_dirs=("/usr/local/doom"   # Places here *doom2.wad can be found.
+bname="${0##*/}"                        # Basename of this script.
+dname="${0%/*}"                         # Directory that this script is in.
+root=$(realpath "$dname/../..")         # Project root.
+test_data="$root/test/data"             # Test data files.
+tmp_dir_prefix="/tmp/wad-tweak-$bname"  # Prefix to $tmp_dir
+tmp_dir="$tmp_dir_prefix.$$"            # Temp directory
+tmp_dir_pid="$tmp_dir_prefix.PID"       # Temp directory with the PID as "PID"
+doom2_wad_dirs=("/usr/local/doom"       # Places here *doom2.wad can be found.
     "/usr/share/doom" "$HOME/doom")
-doom2_wad_names=("doom2.wad"        # *doom2.wad names.
+doom2_wad_names=("doom2.wad"            # *doom2.wad names.
     "freedoom2.wad")
 
 # For a common error message for Python 2 and 3.
-out_fix="sed \"s|^\(^[a-z0-9-]*\.py: error:\).*$|\1 too few arguments|g\""
+out_fix="sed \"s|^\(^[a-z0-9-]*\.py: error:\).*$|\1 too few arguments|g; \
+	s|$tmp_dir|$tmp_dir_pid|g\""
 
 # Scripts to test.
 l="$root/bin/wad-to-lump.py"

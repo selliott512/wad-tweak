@@ -1,4 +1,5 @@
-23 regions read.
+23 regions read        (18 lumps and  5 non-lumps) from directory "/home/sle/git/wad-tweak/test/data/source/w-in-dir-groups/in-dir".
+11 regions changed     ( 1 adds,  3 modifies and  7 deletes).
     Offset       Size      Name IsLump
     ------       ----      ---- ------
          0          0     map01   True
@@ -18,3 +19,5 @@
          0        260  blockmap   True
          0         12  notindir  False
         44          9     added   True
+17 regions written     (14 lumps and  3 non-lumps) to   WAD "/tmp/wad-tweak-test.sh.PID/w-in-dir-groups/out.wad".
+17 regions written     (14 lumps and  3 non-lumps) to directory "/tmp/wad-tweak-test.sh.PID/w-in-dir-groups/out-dir".

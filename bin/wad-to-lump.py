@@ -99,6 +99,11 @@ wad_types = {"IWAD", "PWAD"}
 def apply_changes():
     global regions
 
+    # For statistics displayed at the end.
+    adds = 0
+    modifies = 0
+    deletes = 0
+
     if not len(args.changes):
         return
     amap = collections.OrderedDict()
@@ -170,9 +175,11 @@ def apply_changes():
                 matched = True
                 if value is None:
                     if not args.invert:
+                        deletes += 1
                         regions.remove(region)
                 else:
                     if value != self:
+                        modifies += 1
                         region[r_size] = len(value)
                         region[r_contents] = value
                     if args.once:
@@ -181,16 +188,21 @@ def apply_changes():
                 # Only use the first matching pattern.
                 break
         if (not matched) and args.invert:
+            deletes += 1
             regions.remove(region)
 
     # Add new regions using amap.
     region_number = max_number + 1
     region_offset = max_offset + max_size
     for patt, value in amap.items():
+        adds += 1
         bisect.insort(regions, [region_offset, region_number, len(value), "",
                                 patt, None, value, True])
         region_number += 1
         region_offset += len(value)
+
+    verbose("%2d regions changed     (%2d adds, %2d modifies and %2d deletes)."  % (
+        adds + modifies + deletes, adds, modifies, deletes))
 
 # Write a fatal error message to stderr and exit.
 def fatal(msg):
@@ -280,6 +292,9 @@ def read_regions():
     # Current namespace as determined by *_START and *_END lumps.
     current_ns = ""
 
+    # Actual lumps read (regions that are in the directory).
+    lumps_read = 0
+
     # Format to use for output.
     region_fmt = region_fmt_template.replace("_NS_", "%5s "
                                              if args.namespace else "%.0s")
@@ -328,9 +343,11 @@ def read_regions():
                 ns = region_name[0:len(region_name) - len("_START")]
             # The namespace is just the leading portion of the path.
             current_ns = path[args_plen + 1:len(path) - len(fl) - 1]
+            is_lump = region_name not in non_lumps
+            if is_lump:
+                lumps_read += 1
             bisect.insort(regions, [0, num, os.path.getsize(path), current_ns,
-                                    region_name, path, None,
-                                    region_name not in non_lumps])
+                                    region_name, path, None, is_lump])
     else:
         # Input is a file.
         try:
@@ -400,6 +417,7 @@ def read_regions():
             if not offset:
                 offset = current_offset
                 region[r_offset] = offset
+            lumps_read += 1
             bisect.insort(regions, region)
             current_offset = offset + region_size
         fhand.close()
@@ -428,7 +446,9 @@ def read_regions():
                           wad_size - current_offset, current_ns, "notindir",
                           None, None, False])
 
-    verbose(str(len(regions)) + " regions read.")
+    verbose(("%2d regions read        (%2d lumps and %2d non-lumps) from %s " +
+             "\"%s\".") % (len(regions), lumps_read, len(regions) - lumps_read,
+             "directory" if in_is_dir else "WAD", args.path))
 
 # Similar to unpack, but each bytes value is decoded to a string via UTF-8.
 # This helps with Python 2 & 3 support.
@@ -449,6 +469,12 @@ def warn(msg):
 # Process the regions.
 def write_regions():
     global regions
+
+    # Regions written. This can be less than len(regions) if -l, --lumps.
+    regions_written = 0
+
+    # Actual lumps written (regions that are in the directory).
+    lumps_written = 0
 
     if not in_is_dir:
         try:
@@ -503,9 +529,12 @@ def write_regions():
         print(region_fmt % index_names)
         print(region_fmt % tuple(["-" * len(x) for x in index_names]))
     for region in regions:
+        regions_written += 1
         if args.lumps and not region[r_is_lump]:
             # It's not a region and user only wants lumps.
             continue
+        if region[r_is_lump]:
+            lumps_written += 1
         if args.show:
             print(region_fmt % tuple(region))
         if out_wad or args.output_dir:
@@ -565,6 +594,19 @@ def write_regions():
                       "\" for in place: " + str(e))
 
         out_fhand.close()
+
+    if args.output or args.in_place:
+        out_path = args.path if args.in_place else out_wad
+        verbose(("%2d regions written     (%2d lumps and %2d non-lumps) to   WAD " +
+                 "\"%s\".") % (regions_written, lumps_written,
+                               regions_written - lumps_written, out_path))
+    if args.output_dir:
+        verbose(("%2d regions written     (%2d lumps and %2d non-lumps) to directory " +
+                 "\"%s\".") % (regions_written, lumps_written,
+                               regions_written - lumps_written, args.output_dir))
+    if not (args.output or args.output_dir or args.in_place):
+        verbose("%2d regions not written (%2d lumps and %2d non-lumps)." % (
+                 regions_written, lumps_written, regions_written - lumps_written))
 
 # Log a message to stdout if verbose.
 def verbose(msg):
