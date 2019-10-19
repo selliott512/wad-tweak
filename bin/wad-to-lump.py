@@ -175,16 +175,17 @@ def apply_changes():
     for region in regions[1:]:
         name = region[r_name]
 
-        if name == "waddir":
-            # Can't be changed.
-            continue
-
         # The following may add items after the current directory, which is ok.
         # When the actual directory is written it will be at the end.
         if region[r_number] > max_number:
             max_offset = region[r_offset]
             max_number = region[r_number]
             max_size   = region[r_size]
+
+        if name == "waddir":
+            # Can't be changed.
+            continue
+
         matched = False
         for patt, value in cmap.items():
             if patt.fullmatch(name):
