@@ -59,8 +59,9 @@ lump_groups = {
 # Match map names.
 name_patt = re.compile("E\dM\d|MAP\d\d")
 
-# Region names that are not lumps.
-non_lumps = {"header", "dir", "notindir"}
+# Region names that are not lumps. "header" is not included since checking
+# that the nubmer is 0 is sufficient and allows for actual lumps named "header".
+non_lumps = {"waddir", "notindir"}
 
 # From offset to the start of a namespace. Initial default namespace is "".
 offset_to_namespace = {0:""}
@@ -135,6 +136,8 @@ def apply_changes():
                 fatal("Can not add bare lump \"" + change +
                       "\ - what would the value be?")
             # Delete or add (if -i).
+            if change == "waddir":
+                fatal("\"waddir\" may not be deleted explicitly.")
             cmap[re.compile(change, re.IGNORECASE)] = None
         else:
             # Add or modify
@@ -146,7 +149,7 @@ def apply_changes():
                 value = fhand.read()
                 fhand.close()
             elif cmd[0] == "@":
-                # Self (the value it currently has).
+                # Self (the value it currently has). Useful for "-1".
                 value = self
             else:
                 value = cmd
@@ -156,16 +159,29 @@ def apply_changes():
                 # For add the pattern is just the string given.
                 amap[name[1:]] = value
             else:
+                if name == "waddir":
+                    fatal("\"waddir\" may not be changed explicitly.")
                 # Ignore case for changes.
                 cmap[re.compile(name, re.IGNORECASE)] = value
+
+    if "waddir" in amap.keys():
+        fatal("\"waddir\" may not be added explicitly.")
 
     # Apply changes to the regions using cmap.
     max_offset = 0
     max_number = 0
     max_size   = 0
-    for region in regions[:]:
+    # Start at index 1 to avoid changing the header.
+    for region in regions[1:]:
         name = region[r_name]
-        if (name != "dir") and (region[r_number] > max_number):
+
+        if name == "waddir":
+            # Can't be changed.
+            continue
+
+        # The following may add items after the current directory, which is ok.
+        # When the actual directory is written it will be at the end.
+        if region[r_number] > max_number:
             max_offset = region[r_offset]
             max_number = region[r_number]
             max_size   = region[r_size]
@@ -201,7 +217,7 @@ def apply_changes():
         region_number += 1
         region_offset += len(value)
 
-    verbose("%2d regions changed     (%2d adds, %2d modifies and %2d deletes)."  % (
+    verbose("%3d regions changed     (%3d adds, %3d modifies and %3d deletes)."  % (
         adds + modifies + deletes, adds, modifies, deletes))
 
 # Write a fatal error message to stderr and exit.
@@ -210,7 +226,7 @@ def fatal(msg):
     sys.exit(1)
 
 # Like a recursive os.listdir where the keys are the base names of the files,
-# and the values are paths relative to "dir".
+# and the values are paths relative to "waddir".
 def file_map(dir):
     fmap = {}
     for file in os.listdir(dir):
@@ -286,9 +302,6 @@ def read_regions():
     global regions
     global wad_type
 
-    # True if a header has been processed.
-    header_seen = False
-
     # Current namespace as determined by *_START and *_END lumps.
     current_ns = ""
 
@@ -299,6 +312,11 @@ def read_regions():
     region_fmt = region_fmt_template.replace("_NS_", "%5s "
                                              if args.namespace else "%.0s")
 
+    in_header = False # True if input header seen.
+    waddir_count = 0
+    num = 0
+    last_num = None
+    first = True # first iteration
     args_plen = len(args.path)
     in_is_dir = os.path.isdir(args.path)
     if in_is_dir:
@@ -308,10 +326,11 @@ def read_regions():
                   + "\" does not have read permission.")
         fmap = file_map(args.path)
         digits = None
-        last_num = None
+        first = True
         for fl in sorted(fmap.keys()):
             path = fmap[fl]
             if not os.path.isfile(path):
+                # This shouldn't happen.
                 warn("Ignoring non-file \"" + path + "\".")
                 continue
             num_str, region_name = file_patt.match(fl).groups()
@@ -327,27 +346,43 @@ def read_regions():
                 warn("Ignoring path \"" + fl + "\" because number \"" + num +
                      "\" has already been used.")
                 continue
-            if region_name == "header":
-                if header_seen:
-                    warn("Ignoring duplicate header \"" + path + "\".")
-                    continue
-                header_seen = True
-                fhand =  open(path, "rb")
-                wad_type, = unpack_str("4s", fhand.read(4))
-                if wad_type not in wad_types:
-                    fatal(("Header path \"%s\" is type \"%s\" which is not a known " +
-                      "WAD type. Allowed WAD types: %s") % (
-                        path, wad_type, str(wad_types)))
-                fhand.close()
-            elif region_name.endswith("_START"):
-                ns = region_name[0:len(region_name) - len("_START")]
+            last_num = num
+            if first:
+                if num == 0:
+                    # Number 0 is reserved for the header.
+                    in_header = True
+                    if region_name != "header":
+                        fatal("Number 0 must be named \"header\".")
+                    fhand =  open(path, "rb")
+                    wad_type, = unpack_str("4s", fhand.read(4))
+                    if wad_type not in wad_types:
+                        fatal(("Header path \"%s\" is type \"%s\" which is not a known " +
+                          "WAD type. Allowed WAD types: %s") % (
+                            path, wad_type, str(wad_types)))
+                    fhand.close()
+            elif region_name == "waddir":
+                waddir_count += 1
             # The namespace is just the leading portion of the path.
             current_ns = path[args_plen + 1:len(path) - len(fl) - 1]
-            is_lump = region_name not in non_lumps
+            is_lump = (region_name not in non_lumps) and (num != 0)
             if is_lump:
                 lumps_read += 1
             bisect.insort(regions, [0, num, os.path.getsize(path), current_ns,
                                     region_name, path, None, is_lump])
+            first = False
+        waddir_count_expected = 1 if in_header else 0
+        if waddir_count_expected != waddir_count:
+            fatal("There must be one \"waddir\" file there is a \"header\" file, "
+                  + "and zero otherwise.")
+        if not in_header:
+            # If there is no input header then add a stub one now.
+            bisect.insort(regions, [0, 0, 12, "", "header", "", struct.pack(
+                "<4sII", wad_type.encode("UTF-8"), lumps_read, 0), False])
+
+            # It's been verified that there is no "waddir", so create a stub
+            # for that as well.
+            bisect.insort(regions, [0, num + 1, 0, "", "waddir", "",
+                                    struct.pack(""), False])
     else:
         # Input is a file.
         try:
@@ -364,11 +399,12 @@ def read_regions():
 
         # Add the header to the list of regions.
         bisect.insort(regions, [0, 0, 12, "", "header", None, None, False])
+        in_header = True
 
         # Add the directory to the list of regions. The count is the max signed
         # 32 bit integer so that the directory is last.
         bisect.insort(regions, [directory_offset, (1 << 31) - 1,
-                                directory_entries * 16, "", "dir", None, None,
+                                directory_entries * 16, "", "waddir", None, None,
                                 False])
 
         # Seek to the regions and start reading regions.
@@ -383,6 +419,8 @@ def read_regions():
             offset, region_size, region_name = unpack_str(
                 "<II8s", dent_bytes)
             region_name = region_name.partition("\x00")[0]
+            if region_name.lower() in non_lumps:
+                fatal("Lump name \"" + region_name + "\" is not permitted.")
             region_ns = current_ns
             if region_name.endswith("_START"):
                 prefix = region_name[0:len(region_name) - len("_START")]
@@ -432,9 +470,10 @@ def read_regions():
                 # Only consider regions that have size.
                 continue
             if region[r_offset] > current_offset:
+                region_number += 1
                 ns_index = bisect.bisect(offsets, current_offset) - 1
                 region_ns = offset_to_namespace[offsets[ns_index]]
-                bisect.insort(regions, [current_offset, 0,
+                bisect.insort(regions, [current_offset, region_number,
                              region[r_offset] - current_offset, region_ns,
                                     "notindir", None, None, False])
             current_offset = region[r_offset] + region[r_size]
@@ -446,9 +485,12 @@ def read_regions():
                           wad_size - current_offset, current_ns, "notindir",
                           None, None, False])
 
-    verbose(("%2d regions read        (%2d lumps and %2d non-lumps) from %s " +
-             "\"%s\".") % (len(regions), lumps_read, len(regions) - lumps_read,
-             "directory" if in_is_dir else "WAD", args.path))
+    # Offset the number of regions.
+    extra_reg = 0 if in_header else -2
+    verbose(("%3d regions read        (%3d lumps and %3d non-lumps) from %s " +
+             "\"%s\".") % (len(regions) + extra_reg, lumps_read,
+            (len(regions) + extra_reg) - lumps_read,
+            "directory" if in_is_dir else "WAD", args.path))
 
 # Similar to unpack, but each bytes value is decoded to a string via UTF-8.
 # This helps with Python 2 & 3 support.
@@ -524,15 +566,16 @@ def write_regions():
 
         out_fhand.write(struct.pack("<4sII", wad_type.encode("UTF-8"), 0, 0))
     if args.output_dir:
-        index = 0
+        # If -l, --lumps then start at 1 because 0 is only for "header".
+        index = 1 if args.lumps else 0
     if args.show:
         print(region_fmt % index_names)
         print(region_fmt % tuple(["-" * len(x) for x in index_names]))
     for region in regions:
-        regions_written += 1
         if args.lumps and not region[r_is_lump]:
             # It's not a region and user only wants lumps.
             continue
+        regions_written += 1
         if region[r_is_lump]:
             lumps_written += 1
         if args.show:
@@ -553,11 +596,16 @@ def write_regions():
                 else:
                     in_fhand.seek(region[r_offset])
                     region_contents = in_fhand.read(region[r_size])
-        if out_wad and region[r_is_lump]:
+        if args.lumps and not region[r_is_lump]:
+            continue
+        # For output WAD don't process the header entry, which is number 0, or
+        # the directory - we'll deal with that later.
+        if out_wad and region[r_number] and (region[r_name] != "waddir"):
             out_fhand.write(region_contents)
             region_name_wad  = region[r_name] if args.case else region[r_name].upper()
-            directory.append((offset, region[r_size], region_name_wad))
-            count += 1
+            if region[r_is_lump]:
+                directory.append((offset, region[r_size], region_name_wad))
+                count += 1
             offset += region[r_size]
         if args.output_dir:
             region_name_file = region[r_name] if args.case else region[r_name].lower()
@@ -595,18 +643,24 @@ def write_regions():
 
         out_fhand.close()
 
+    rw = regions_written
+    lw = lumps_written
+    nlw = rw - lw # non lump written
+    # TODO: Turn into a method. All other verbose() of the same type. Why is map06.wad -vp diff?
+    extra_nl = 2 if args.lumps else 0
+    if args.show:
+        verbose("%3d regions shown       (%3d lumps and %3d non-lumps)." % (
+                 regions_written, lumps_written, regions_written - lumps_written))
     if args.output or args.in_place:
         out_path = args.path if args.in_place else out_wad
-        verbose(("%2d regions written     (%2d lumps and %2d non-lumps) to   WAD " +
-                 "\"%s\".") % (regions_written, lumps_written,
-                               regions_written - lumps_written, out_path))
+        verbose(("%3d regions written     (%3d lumps and %3d non-lumps) to       WAD " +
+                 "\"%s\".") % (rw + extra_nl, lw, nlw + extra_nl, out_path))
     if args.output_dir:
-        verbose(("%2d regions written     (%2d lumps and %2d non-lumps) to directory " +
-                 "\"%s\".") % (regions_written, lumps_written,
-                               regions_written - lumps_written, args.output_dir))
-    if not (args.output or args.output_dir or args.in_place):
-        verbose("%2d regions not written (%2d lumps and %2d non-lumps)." % (
-                 regions_written, lumps_written, regions_written - lumps_written))
+        verbose(("%3d regions written     (%3d lumps and %3d non-lumps) to directory " +
+                 "\"%s\".") % (rw, lw, nlw, args.output_dir))
+    if not (args.show or args.output or args.output_dir or args.in_place):
+        verbose("%3d regions not written (%3d lumps and %3d non-lumps)." % (
+                 rw + extra_nl, lw, nlw + extra_nl))
 
 # Log a message to stdout if verbose.
 def verbose(msg):
