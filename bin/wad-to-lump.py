@@ -132,36 +132,40 @@ def apply_changes():
     for change in changes:
         i = change.find("=")
         if i == -1:
-            if change[0] == "+":
+            if len(change) and change[0] == "+":
                 fatal("Can not add bare lump \"" + change +
                       "\ - what would the value be?")
             # Delete or add (if -i).
             if change == "waddir":
                 fatal("\"waddir\" may not be deleted explicitly.")
+            if not len(change):
+                continue
             cmap[re.compile(change, re.IGNORECASE)] = None
         else:
             # Add or modify
             name = change[:i].strip()
             cmd = change[i + 1:].strip()
-            if cmd[0] == ":":
+            if len(cmd) and cmd[0] == ":":
                 # Read from file.
                 fhand = open(cmd[1:], "rb")
                 value = fhand.read()
                 fhand.close()
-            elif cmd[0] == "@":
+            elif len(cmd) and cmd[0] == "@":
                 # Self (the value it currently has). Useful for "-1".
                 value = self
             else:
                 value = cmd
             if isinstance(value, str):
                 value = value.encode("UTF-8")
-            if name[0] == "+":
+            if len(name) and name[0] == "+":
                 # For add the pattern is just the string given.
                 amap[name[1:]] = value
             else:
                 if name == "waddir":
                     fatal("\"waddir\" may not be changed explicitly.")
                 # Ignore case for changes.
+                if not len(name):
+                    continue
                 cmap[re.compile(name, re.IGNORECASE)] = value
 
     if "waddir" in amap.keys():
