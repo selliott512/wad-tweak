@@ -268,7 +268,7 @@ def parse_args():
         help="Lumps. Only output actual lumps for -s, --show and " +
              "-d, --output-dir.")
     parser.add_argument("-n", "--namespace", action="store_true",
-        help="Namespace support. Organize output by by namespace.")
+        help="Namespace support. Organize output by namespace.")
     parser.add_argument("-1", "--once", action="store_true",
         help="Each changed region should only occur once by name.")
     parser.add_argument("-o", "--output",
@@ -283,7 +283,7 @@ def parse_args():
     parser.add_argument("-s", "--show", action="store_true",
         help="Show everything found.")
     parser.add_argument("-v", "--verbose", action="store_true",
-        help="Verbose. Additional debugging information.")
+        help="Verbose. Additional statistical information (recommended).")
     parser.add_argument("path", metavar="path",
         help="Path to WAD file or regions created by this tool.")
     parser.add_argument("changes", metavar="change", nargs="*",

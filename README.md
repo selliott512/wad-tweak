@@ -6,7 +6,7 @@ See the "doc" directory for license and version information.
 
 ### Installation
 
-For all command line tools [Python](https://www.python.org/) (version 2 or 3) is required. For wad-shuffle-dir.py [DeuTex](https://doomwiki.org/wiki/DeuTex) is required in addition to Python.
+For all command line tools [Python](https://www.python.org/) 3 is required. For wad-shuffle-dir.py [DeuTex](https://doomwiki.org/wiki/DeuTex) is required in addition to Python.
 
 wad-tweak can be downloaded from GitHub:
 * [latest stable version](https://github.com/selliott512/wad-tweak/archive/0.9.0.zip) (recommended)
@@ -102,13 +102,15 @@ One or more changes can optionally be given at the end of the command line. Chan
 * *region*=@ regions named "region" will have their contents changed to their current contents (a no-op except when option -1, --once is given)
 * *region* regions named "region" will be deleted
 
+If the change is preceeded by "+" then a lump is added instead of changing the existing lumps.
+
 #### wad-to-lump.py Usage
 
 The usage can be seen by passing "-h" to wad-to-lump.py:
 
 ```txt
-usage: wad-to-lump.py [-h] [-1] [-c] [-d OUTPUT_DIR] [-o OUTPUT] [-f] [-l]
-                      [-q] [-s] [-v]
+usage: wad-to-lump.py [-h] [-c] [-f] [-i] [-l] [-n] [-1] [-o OUTPUT] [-p]
+                      [-d OUTPUT_DIR] [-q] [-s] [-v]
                       path [change [change ...]]
 
 Doom WAD files and directories to and from lump files.
@@ -119,22 +121,28 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -c, --case            Maintain the case of regions. (default: False)
+  -f, --force           Force. Overwrite existing output. (default: False)
+  -i, --invert          Invert. Invert the meaning of bare (no "=") lumps.
+                        (default: False)
+  -l, --lumps           Lumps. Only output actual lumps for -s, --show and -d,
+                        --output-dir. (default: False)
+  -n, --namespace       Namespace support. Organize output by namespace.
+                        (default: False)
   -1, --once            Each changed region should only occur once by name.
                         (default: False)
-  -c, --case            Maintain the case of regions. (default: False)
-  -d OUTPUT_DIR, --output-dir OUTPUT_DIR
-                        Output directory. Region files will be created at this
-                        location. (default: None)
   -o OUTPUT, --output OUTPUT
                         Output filename. A new WAD will created at this
                         location. (default: None)
-  -f, --force           Force. Overwrite existing output. (default: False)
-  -l, --lumps           Lumps. Only output actual lumps for -s, --show and -d,
-                        --output-dir. (default: False)
+  -p, --in-place        In place. The input WAD and output WAD are the same.
+                        (default: False)
+  -d OUTPUT_DIR, --output-dir OUTPUT_DIR
+                        Output directory. Region files will be created at this
+                        location. (default: None)
   -q, --quiet           Quiet (minimum output). (default: False)
   -s, --show            Show everything found. (default: False)
-  -v, --verbose         Verbose. Additional debugging information. (default:
-                        False)
+  -v, --verbose         Verbose. Additional statistical information
+                        (recommended). (default: False)
 ```
 
 #### wad-to-lump.py Examples
@@ -146,9 +154,73 @@ Show (-s) the regions in "comcon.wad":
 wad-to-lump.py -s comcon.wad
 ```
 
+##### Standard
+
+Sometimes level editors will add extraneous lumps and space that is not in the WAD directory (shown as "notindir" by wad-to-lump.py). To remove such regions of the WAD file so that only the minimal, or standard, lumps remain the following can be run:
+```shell
+wad-to-lump.py -vip comcon.wad _standard_
+```
+A helpful mnemonic is that only the VIP (important) lumps should remain, which are the following 11 lumps:
+```shell
+Offset       Size      Name IsLump
+------       ----      ---- ------
+     0         12    header  False
+    12          0      E1M4   True
+    12       2740    THINGS   True
+  2752      24010  LINEDEFS   True
+ 26762      75990  SIDEDEFS   True
+102752       5748  VERTEXES   True
+108500      32124      SEGS   True
+140624       4000  SSECTORS   True
+144624      27972     NODES   True
+172596      11648   SECTORS   True
+184244      25088    REJECT   True
+209332      15590  BLOCKMAP   True
+224922        176    waddir  False
+```
+Notice that the non-standard "CREDIT" lump was removed. The options are verbose (-v), invert (-i) and in-place (-p). Verbose (-v) gives helpful information about the number of lumps. Invert (-i) inverts the way changes work so that so that only specified lumps (ones in the "_standard_" group in this case) are included. In-place (-p) means to edit the input file rather than creating a new file.
+
+##### Namespace
+
+Doom WADs sometimes have namespaces marked by empty lumps with pattern "namespace_START" and "namespace_END". When the namespace option (-n) is passed the namespace will be indicated for show (-s), and subdirectories will be created for the namespace when writing to a directory (-d). For example, to see only the namespace markers ("_ns_" group) in "freedoom2.wad" as well as the implied namespace (-n):
+```shell
+wad-to-lump.py -lvins freedoom2.wad _ns_
+```
+Which shows (-s) the following:
+```shell
+    Offset       Size    NS      Name IsLump
+    ------       ----    --      ---- ------
+  13516048          0     S   S_START   True
+  17919264          0     S     S_END   True
+  17919264          0     P   P_START   True
+  17919264          0  P/P1  P1_START   True
+  27736780          0  P/P1    P1_END   True
+  27736780          0  P/P2  P2_START   True
+  27736780          0  P/P2    P2_END   True
+  27736780          0  P/P3  P3_START   True
+  27736780          0  P/P3    P3_END   True
+  27736780          0     P     P_END   True
+  27736780          0     F   F_START   True
+  27736780          0  F/F1  F1_START   True
+  28691148          0  F/F1    F1_END   True
+  28691148          0  F/F2  F2_START   True
+  28691148          0  F/F2    F2_END   True
+  28691148          0  F/F3  F3_START   True
+  28691148          0  F/F3    F3_END   True
+  28691148          0     F     F_END   True
+```
+Only lumps are included in the above output due to the lumps (-l) option. When writing to a directory (-d) lumps between "F3_START" and "F3_END" would end up in subdirectory "f/f3" relative to the output directory (-d). Notice the "NS" column.
+
+##### Adding
+
+It's possible to change the lumps in various ways as shown in the previous examples. If the change is preceded by "+" then a new lump is added instead of changing the existing lumps. For example, to add the contents of "mybehavior.o", which was compiled by the ACC compiler, as the "BEHAVIOR" lump to "comcon.wad":
+```shell
+wad-to-lump.py -vp comcon.wad +behavior=:mybehavior.o
+```
+
 ##### Complicated
 
-Verbosely (-v) show (-s) the regions, but only if they are lumps (-l) in the previously created "comcon" directory. Write output to output directory (-d) "comcon2" and to output WAD file (-o) "comcon2.wad". Replace region "THINGS" with the contents of file "things-file". Replace the contents of region "DEMO01" with string "This is a demo". Delete region "SECTORS". Use the original region name case for the files created (-c). If the output directory already exists then overwrite it (-f). If a changed region occurs more than once then only keep the first occurrence (-1):
+An example to demonstrate many options at once. Verbosely (-v) show (-s) the regions, but only if they are lumps (-l) in the previously created "comcon" directory. Write output to output directory (-d) "comcon2" and to output WAD file (-o) "comcon2.wad". Replace region "THINGS" with the contents of file "things-file". Replace the contents of region "DEMO01" with string "This is a demo". Delete region "SECTORS". Use the original region name case for the files created (-c). If the output directory already exists then overwrite it (-f). If a changed region occurs more than once then only keep the first occurrence (-1):
 ```shell
 wad-to-lump.py -vslfc1 -d comcon2 -o comcon2.wad comcon things=:things-file demo1="This is a demo" sectors
 ```
