@@ -222,8 +222,8 @@ def apply_changes():
         region_number += 1
         region_offset += len(value)
 
-    verbose("%3d regions changed     (%3d adds, %3d modifies and %3d deletes)."  % (
-        adds + modifies + deletes, adds, modifies, deletes))
+    summarize("changed", "%3d adds, %3d modifies, %3d deletes" % (
+        adds, modifies, deletes), adds + modifies + deletes, None, None, None)
 
 # Write a fatal error message to stderr and exit.
 def fatal(msg):
@@ -377,8 +377,8 @@ def read_regions():
             first = False
         waddir_count_expected = 1 if in_header else 0
         if waddir_count_expected != waddir_count:
-            fatal("There must be one \"waddir\" file there is a \"header\" file, "
-                  + "and zero otherwise.")
+            fatal("There must be one \"waddir\" file if there is a \"header\" " +
+                  "file, and zero otherwise.")
         if not in_header:
             # If there is no input header then add a stub one now.
             bisect.insort(regions, [0, 0, 12, "", "header", "", struct.pack(
@@ -492,10 +492,25 @@ def read_regions():
 
     # Offset the number of regions.
     extra_reg = 0 if in_header else -2
-    verbose(("%3d regions read        (%3d lumps and %3d non-lumps) from %s " +
-             "\"%s\".") % (len(regions) + extra_reg, lumps_read,
-            (len(regions) + extra_reg) - lumps_read,
-            "directory" if in_is_dir else "WAD", args.path))
+    summarize("read", None, len(regions) + extra_reg, lumps_read,
+              "directory" if in_is_dir else "WAD", args.path)
+
+# Log a summary message if verbose.
+def summarize(action, custom, region_count, lump_count, path_type, path):
+    if not args.verbose:
+        return
+    if custom:
+        stats = custom
+    else:
+        stats = "%3d lumps, %3d non-lumps" % (lump_count,
+            region_count - lump_count)
+    msg = "%3d regions %-11s (%s)" % (region_count, action, stats)
+    if path_type is not None:
+        direction = "from" if "read" in action else "to"
+        msg += " %4s %-9s \"%s\"." % (direction, path_type, path)
+    else:
+        msg += "."
+    verbose(msg)
 
 # Similar to unpack, but each bytes value is decoded to a string via UTF-8.
 # This helps with Python 2 & 3 support.
@@ -507,6 +522,11 @@ def unpack_str(fmt, buff):
     else:
         # There can be no strings to convert.
         return struct.unpack(fmt, buff)
+
+# Log a message to stdout if verbose.
+def verbose(msg):
+    if args.verbose:
+        message(msg)
 
 # Print a warning to stderr. It's flushed.
 def warn(msg):
@@ -651,26 +671,16 @@ def write_regions():
     rw = regions_written
     lw = lumps_written
     nlw = rw - lw # non lump written
-    # TODO: Turn into a method. All other verbose() of the same type. Why is map06.wad -vp diff?
     extra_nl = 2 if args.lumps else 0
     if args.show:
-        verbose("%3d regions shown       (%3d lumps and %3d non-lumps)." % (
-                 regions_written, lumps_written, regions_written - lumps_written))
+        summarize("shown", None, rw, lw, None, None)
     if args.output or args.in_place:
         out_path = args.path if args.in_place else out_wad
-        verbose(("%3d regions written     (%3d lumps and %3d non-lumps) to       WAD " +
-                 "\"%s\".") % (rw + extra_nl, lw, nlw + extra_nl, out_path))
+        summarize("written", None, rw + extra_nl, lw, "WAD", out_path)
     if args.output_dir:
-        verbose(("%3d regions written     (%3d lumps and %3d non-lumps) to directory " +
-                 "\"%s\".") % (rw, lw, nlw, args.output_dir))
+        summarize("written", None, rw, lw, "directory", args.output_dir)
     if not (args.show or args.output or args.output_dir or args.in_place):
-        verbose("%3d regions not written (%3d lumps and %3d non-lumps)." % (
-                 rw + extra_nl, lw, nlw + extra_nl))
-
-# Log a message to stdout if verbose.
-def verbose(msg):
-    if args.verbose:
-        message(msg)
+        summarize("not written", None, rw, lw, None, None)
 
 # Main
 
