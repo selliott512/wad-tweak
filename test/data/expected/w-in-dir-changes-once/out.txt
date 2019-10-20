@@ -1,4 +1,4 @@
- 23 regions read        ( 18 lumps,   5 non-lumps) from directory "/mnt/data/home/sle/git/wad-tweak/test/data/source/w-in-dir-changes-once/in-dir".
+ 23 regions read        ( 18 lumps,   5 non-lumps) from directory "wad-tweak/test/data/source/w-in-dir-changes-once/in-dir".
   6 regions changed     (  0 adds,   3 modifies,   3 deletes).
     Offset       Size      Name IsLump
     ------       ----      ---- ------

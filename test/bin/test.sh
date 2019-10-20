@@ -41,9 +41,12 @@ doom2_wad_dirs=("/usr/local/doom"       # Places here *doom2.wad can be found.
 doom2_wad_names=("doom2.wad"            # *doom2.wad names.
     "freedoom2.wad")
 
-# For a common error message for Python 2 and 3.
+# Adjust the output to make it less variable:
+#   1) Similar usage error message for Python 2 and 3.
+#   2) Map the PID to "PID".
+#   3) Map the current directory to to "wad-tweak".
 out_fix="sed \"s|^\(^[a-z0-9-]*\.py: error:\).*$|\1 too few arguments|g; \
-	s|$tmp_dir|$tmp_dir_pid|g\""
+	s|$tmp_dir|$tmp_dir_pid|g;s|$root|wad-tweak|g\""
 
 # Scripts to test.
 l="$root/bin/wad-to-lump.py"
