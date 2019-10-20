@@ -1,4 +1,4 @@
-36 regions read        (34 lumps and  2 non-lumps) from directory "/home/sle/git/wad-tweak/test/data/source/w-in-dir-ns/in-dir".
+ 36 regions read        ( 34 lumps,   2 non-lumps) from directory "/mnt/data/home/sle/git/wad-tweak/test/data/source/w-in-dir-ns/in-dir".
     Offset       Size    NS      Name IsLump
     ------       ----    --      ---- ------
          0         12          header  False
@@ -36,6 +36,7 @@
          0         31     p   asubinp   True
          0          0     p     p_end   True
          0         33         asubint   True
-         0        544             dir  False
-36 regions written     (34 lumps and  2 non-lumps) to   WAD "/tmp/wad-tweak-test.sh.PID/w-in-dir-ns/out.wad".
-36 regions written     (34 lumps and  2 non-lumps) to directory "/tmp/wad-tweak-test.sh.PID/w-in-dir-ns/out-dir".
+         0        544          waddir  False
+ 36 regions shown       ( 34 lumps,   2 non-lumps).
+ 36 regions written     ( 34 lumps,   2 non-lumps)   to WAD       "/tmp/wad-tweak-test.sh.PID/w-in-dir-ns/out.wad".
+ 36 regions written     ( 34 lumps,   2 non-lumps)   to directory "/tmp/wad-tweak-test.sh.PID/w-in-dir-ns/out-dir".

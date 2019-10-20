@@ -1,5 +1,5 @@
-23 regions read        (18 lumps and  5 non-lumps) from directory "/home/sle/git/wad-tweak/test/data/source/w-in-dir-changes/in-dir".
- 6 regions changed     ( 0 adds,  5 modifies and  1 deletes).
+ 23 regions read        ( 18 lumps,   5 non-lumps) from directory "/mnt/data/home/sle/git/wad-tweak/test/data/source/w-in-dir-changes/in-dir".
+  6 regions changed     (  0 adds,   5 modifies,   1 deletes).
     Offset       Size      Name IsLump
     ------       ----      ---- ------
          0         12    header  False
@@ -23,6 +23,7 @@
          0         12  notindir  False
          0         88  gl_map01   True
          0         10  __eureka   True
-         0        288       dir  False
-22 regions written     (17 lumps and  5 non-lumps) to   WAD "/tmp/wad-tweak-test.sh.PID/w-in-dir-changes/out.wad".
-22 regions written     (17 lumps and  5 non-lumps) to directory "/tmp/wad-tweak-test.sh.PID/w-in-dir-changes/out-dir".
+         0        288    waddir  False
+ 22 regions shown       ( 17 lumps,   5 non-lumps).
+ 22 regions written     ( 17 lumps,   5 non-lumps)   to WAD       "/tmp/wad-tweak-test.sh.PID/w-in-dir-changes/out.wad".
+ 22 regions written     ( 17 lumps,   5 non-lumps)   to directory "/tmp/wad-tweak-test.sh.PID/w-in-dir-changes/out-dir".

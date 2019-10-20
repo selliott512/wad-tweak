@@ -1,8 +1,8 @@
-23 regions read        (18 lumps and  5 non-lumps) from WAD "/home/sle/git/wad-tweak/test/data/source/w-in-wad/in.wad".
+ 23 regions read        ( 18 lumps,   5 non-lumps) from WAD       "/mnt/data/home/sle/git/wad-tweak/test/data/source/w-in-wad/in.wad".
     Offset       Size      Name IsLump
     ------       ----      ---- ------
          0         12    header  False
-         0          0     MAP01   True
+        12          0     MAP01   True
         12         40    THINGS   True
         52        280  LINEDEFS   True
        332        720  SIDEDEFS   True
@@ -16,13 +16,14 @@
       1496         20  GL_SSECT   True
       1516        112  GL_NODES   True
       1628         68  VERTEXES   True
-      1628          0    GL_PVS   True
+      1696          0    GL_PVS   True
       1696        288      SEGS   True
       1984        112     NODES   True
       2096        260  BLOCKMAP   True
       2356        260  notindir  False
       2616         88  GL_MAP01   True
       2704         44  __EUREKA   True
-      2748        288       dir  False
-23 regions written     (18 lumps and  5 non-lumps) to   WAD "/tmp/wad-tweak-test.sh.PID/w-in-wad/out.wad".
-23 regions written     (18 lumps and  5 non-lumps) to directory "/tmp/wad-tweak-test.sh.PID/w-in-wad/out-dir".
+      2748        288    waddir  False
+ 23 regions shown       ( 18 lumps,   5 non-lumps).
+ 23 regions written     ( 18 lumps,   5 non-lumps)   to WAD       "/tmp/wad-tweak-test.sh.PID/w-in-wad/out.wad".
+ 23 regions written     ( 18 lumps,   5 non-lumps)   to directory "/tmp/wad-tweak-test.sh.PID/w-in-wad/out-dir".
