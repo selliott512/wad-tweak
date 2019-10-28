@@ -217,8 +217,8 @@ def apply_changes():
     region_offset = max_offset + max_size
     for patt, value in amap.items():
         adds += 1
-        bisect.insort(regions, [region_offset, region_number, len(value), "",
-                                patt, None, value, True])
+        bisect.insort(regions, new_region(region_offset, region_number,
+                        len(value), "", patt, None, value, True))
         region_number += 1
         region_offset += len(value)
 
@@ -248,6 +248,11 @@ def file_map(dir):
 def message(msg):
     print(msg)
     sys.stdout.flush()
+
+# Create a new region and return it.
+def new_region(offset,  number, size, namespace, name, file_name, contents,
+               is_lump):
+    return [offset, number, size, namespace, name, file_name, contents, is_lump]
 
 # Parse the command line arguments and store the result in 'args'.
 def parse_args():
@@ -372,8 +377,8 @@ def read_regions():
             is_lump = (region_name not in non_lumps) and (num != 0)
             if is_lump:
                 lumps_read += 1
-            bisect.insort(regions, [0, num, os.path.getsize(path), current_ns,
-                                    region_name, path, None, is_lump])
+            bisect.insort(regions, new_region(0, num, os.path.getsize(path),
+                        current_ns, region_name, path, None, is_lump))
             first = False
         waddir_count_expected = 1 if in_header else 0
         if waddir_count_expected != waddir_count:
@@ -381,13 +386,14 @@ def read_regions():
                   "file, and zero otherwise.")
         if not in_header:
             # If there is no input header then add a stub one now.
-            bisect.insort(regions, [0, 0, 12, "", "header", "", struct.pack(
-                "<4sII", wad_type.encode("UTF-8"), lumps_read, 0), False])
+            bisect.insort(regions, new_region(0, 0, 12, "", "header", "",
+                struct.pack("<4sII", wad_type.encode("UTF-8"), lumps_read, 0),
+                False))
 
             # It's been verified that there is no "waddir", so create a stub
             # for that as well.
-            bisect.insort(regions, [0, num + 1, 0, "", "waddir", "",
-                                    struct.pack(""), False])
+            bisect.insort(regions, new_region(0, num + 1, 0, "", "waddir", "",
+                struct.pack(""), False))
     else:
         # Input is a file.
         try:
@@ -403,14 +409,15 @@ def read_regions():
                       args.path, wad_type, str(wad_types)))
 
         # Add the header to the list of regions.
-        bisect.insort(regions, [0, 0, 12, "", "header", None, None, False])
+        bisect.insort(regions, new_region(0, 0, 12, "", "header", None, None,
+                                          False))
         in_header = True
 
         # Add the directory to the list of regions. The count is the max signed
         # 32 bit integer so that the directory is last.
-        bisect.insort(regions, [directory_offset, (1 << 31) - 1,
-                                directory_entries * 16, "", "waddir", None, None,
-                                False])
+        bisect.insort(regions, new_region(directory_offset, (1 << 31) - 1,
+                        directory_entries * 16, "", "waddir", None, None,
+                        False))
 
         # Seek to the regions and start reading regions.
         current_offset = 0
@@ -450,8 +457,8 @@ def read_regions():
                              "\" because the last NS is \"" + final_ns + ".")
                 offset_to_namespace[offset] = current_ns
 
-            region = [offset, region_number, region_size, region_ns,
-                      region_name, None, None, True]
+            region = new_region(offset, region_number, region_size, region_ns,
+                        region_name, None, None, True)
             if not region_name:
                 if offset or region_size:
                     warn("Region (" + (region_fmt % tuple(region)) + ") has no "
@@ -478,17 +485,17 @@ def read_regions():
                 region_number += 1
                 ns_index = bisect.bisect(offsets, current_offset) - 1
                 region_ns = offset_to_namespace[offsets[ns_index]]
-                bisect.insort(regions, [current_offset, region_number,
+                bisect.insort(regions, new_region(current_offset, region_number,
                              region[r_offset] - current_offset, region_ns,
-                                    "notindir", None, None, False])
+                             "notindir", None, None, False))
             current_offset = region[r_offset] + region[r_size]
             last_size = region[r_size]
 
         # Extra space at the end of the WAD?
         if wad_size > current_offset:
-            bisect.insort(regions, [current_offset, 0,
+            bisect.insort(regions, new_region(current_offset, 0,
                           wad_size - current_offset, current_ns, "notindir",
-                          None, None, False])
+                          None, None, False))
 
     # Offset the number of regions.
     extra_reg = 0 if in_header else -2
