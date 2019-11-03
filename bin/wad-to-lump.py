@@ -636,7 +636,8 @@ def write_regions():
             out_fhand.write(region_contents)
             region_name_wad  = region[r_name] if args.case else region[r_name].upper()
             if region[r_is_lump]:
-                directory.append((offset, region[r_size], region_name_wad))
+                bisect.insort(directory, (region[r_number], offset, region[r_size],
+                                          region_name_wad))
                 count += 1
             offset += region[r_size]
         if args.output_dir:
@@ -659,8 +660,8 @@ def write_regions():
     if out_wad:
         # Write the new directory.
         for dent in directory:
-            out_fhand.write(struct.pack("<II8s", *(dent[0:2] + (
-                dent[2].encode("UTF-8"),))))
+            out_fhand.write(struct.pack("<II8s", *(dent[1:3] + (
+                dent[3].encode("UTF-8"),))))
         # Go back to the header to write the directory information.
         out_fhand.seek(4)
         out_fhand.write(struct.pack("<II", count, offset))
