@@ -274,6 +274,10 @@ def parse_args():
              "-d, --output-dir.")
     parser.add_argument("-n", "--namespace", action="store_true",
         help="Namespace support. Organize output by namespace.")
+    parser.add_argument("-r", "--offset-order", action="store_true",
+        help="If true then order the output directory based on the offset " +
+        "of the lumps. By default the output directory will have the same " +
+        "order as the input directory.")
     parser.add_argument("-1", "--once", action="store_true",
         help="Each changed region should only occur once by name.")
     parser.add_argument("-o", "--output",
@@ -636,7 +640,8 @@ def write_regions():
             out_fhand.write(region_contents)
             region_name_wad  = region[r_name] if args.case else region[r_name].upper()
             if region[r_is_lump]:
-                bisect.insort(directory, (region[r_number], offset, region[r_size],
+                number = region[r_number] if args.offset_order else region[r_number]
+                bisect.insort(directory, (number, offset, region[r_size],
                                           region_name_wad))
                 count += 1
             offset += region[r_size]
