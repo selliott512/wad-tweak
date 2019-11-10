@@ -621,6 +621,9 @@ def write_regions():
                 region_contents = region[r_contents]
             else:
                 if in_is_dir:
+                    if not region[r_file_name]:
+                        # No file even though directory input - waddir?
+                        continue
                     try:
                         fhand = open(region[r_file_name], "rb")
                     except IOError:
