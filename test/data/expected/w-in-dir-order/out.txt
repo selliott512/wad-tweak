@@ -1,0 +1,11 @@
+  5 regions read        (  3 lumps,   2 non-lumps) from directory "wad-tweak/test/data/source/w-in-dir-order/in-dir".
+    Offset       Size      Name IsLump
+    ------       ----      ---- ------
+         0         12    header  False
+         0         64     lumpc   True
+         0         64     lumpa   True
+         0         64     lumpb   True
+         0         48    waddir  False
+  5 regions shown       (  3 lumps,   2 non-lumps).
+  5 regions written     (  3 lumps,   2 non-lumps)   to WAD       "/tmp/wad-tweak-test.sh.PID/w-in-dir-order/out.wad".
+  5 regions written     (  3 lumps,   2 non-lumps)   to directory "/tmp/wad-tweak-test.sh.PID/w-in-dir-order/out-dir".

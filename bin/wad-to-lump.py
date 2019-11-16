@@ -307,6 +307,39 @@ def parse_args():
 
     return args
 
+# Read just the names from a directory, or directory file. "file_ref" is
+# assumed to be a file name if a string, or a file handle otherwise. "offset"
+# is the offset in the file, and "count" is the number of directory entries.
+def read_directory(file_ref, offset, count):
+    # Map file_ref to a file handle.
+    if isinstance(file_ref, str):
+        # file_ref is a string.
+        fhand =  open(file_ref, "rb")
+    else:
+        # file_ref is a file handle.
+        fhand = file_ref
+
+    # Seek to the directory.
+    fhand.seek(offset)
+
+    directory = []
+    for _ in range(count):
+        dent_bytes = fhand.read(16)
+        if len(dent_bytes) < 16:
+            break # short read
+        offset, region_size, region_name = unpack_str("<II8s", dent_bytes)
+        entry = (offset, region_size, region_name.partition("\x00")[0])
+        if len(entry) != 3:
+            fatal("Entry \"" + str(entry) + "\" does not have expected " +
+                  "length 3.")
+        directory.append(entry)
+
+    # Close it if it was opened.
+    if isinstance(file_ref, str):
+        fhand.close()
+
+    return directory
+
 # Read the regions, both lump and non-lump, into global "regions" in sorted
 # order.
 def read_regions():
@@ -427,14 +460,11 @@ def read_regions():
         current_offset = 0
         region_number = 0
         fhand.seek(directory_offset)
-        for _ in range(directory_entries):
-            dent_bytes = fhand.read(16)
+
+        dir_ents = read_directory(fhand, directory_offset, directory_entries)
+        for dir_ent in dir_ents:
             region_number += 1
-            if len(dent_bytes) < 16:
-                break # short read
-            offset, region_size, region_name = unpack_str(
-                "<II8s", dent_bytes)
-            region_name = region_name.partition("\x00")[0]
+            offset, region_size, region_name = dir_ent
             if region_name.lower() in non_lumps:
                 fatal("Lump name \"" + region_name + "\" is not permitted.")
             region_ns = current_ns
