@@ -310,7 +310,7 @@ def parse_args():
 # Read just the names from a directory, or directory file. "file_ref" is
 # assumed to be a file name if a string, or a file handle otherwise. "offset"
 # is the offset in the file, and "count" is the number of directory entries.
-def read_directory(file_ref, offset, count):
+def read_directory(file_ref, offset, count=None):
     # Map file_ref to a file handle.
     if isinstance(file_ref, str):
         # file_ref is a string.
@@ -323,7 +323,11 @@ def read_directory(file_ref, offset, count):
     fhand.seek(offset)
 
     directory = []
-    for _ in range(count):
+    index = 0
+    while True:
+        if count and (index >= count):
+            # Done.
+            break
         dent_bytes = fhand.read(16)
         if len(dent_bytes) < 16:
             break # short read
@@ -333,6 +337,7 @@ def read_directory(file_ref, offset, count):
             fatal("Entry \"" + str(entry) + "\" does not have expected " +
                   "length 3.")
         directory.append(entry)
+        index += 1
 
     # Close it if it was opened.
     if isinstance(file_ref, str):
@@ -421,6 +426,7 @@ def read_regions():
         if waddir_count_expected != waddir_count:
             fatal("There must be one \"waddir\" file if there is a \"header\" " +
                   "file, and zero otherwise.")
+
         if not in_header:
             # If there is no input header then add a stub one now.
             bisect.insort(regions, new_region(0, 0, 12, "", "header", "",
@@ -431,6 +437,47 @@ def read_regions():
             # for that as well.
             bisect.insort(regions, new_region(0, num + 1, 0, "", "waddir", "",
                 struct.pack(""), False))
+
+        if waddir_count:
+            # Build a map of the directory with an additional element at the end
+            # indicating the index into the directory.
+            index = 0
+            dmap = {}
+            directory = read_directory(path, 0)
+            for dent in directory:
+                low_name = dent[2].lower()
+                if low_name in dmap:
+                    warn("Directory entry \"" + low_name +
+                         "\" found twice. Output may be inaccurate.")
+                dmap[low_name] = dent + (index,)
+                index += 1
+
+            # Build a list of the region numbers for regions that are lumps
+            # (lump_nums_orig), and at the same time build an index correlated list
+            # of indexes into the directory (dir_idxs).
+            lump_nums_orig = []
+            dir_idxs = []
+            for region in regions:
+                if region[r_is_lump]:
+                    lump_nums_orig.append(region[r_number])
+                    low_name = region[r_name].lower()
+                    if not low_name in dmap:
+                        warn("Unable to find region \"" + str(region) +
+                              "\" in external \"waddir\" file. Maintaining " +
+                              "location of lump. Try deleting the " +
+                              "\"waddir\" file if this is not correct.")
+                        dir_idxs.append(len(dir_idxs))
+                    else:
+                        dir_idxs.append(dmap[low_name][3])
+
+            # Build a new list of region numbers (lump_nums_new)
+            lump_nums_new = [-1] * len(lump_nums_orig)
+            for i in range(len(lump_nums_orig)):
+                lump_nums_new[dir_idxs[i]] = lump_nums_orig[i]
+
+            # Apply the new lump numbers to the list of regions.
+            for i in range(len(lump_nums_orig)):
+                regions[lump_nums_orig[i]][r_number] = lump_nums_new[i]
     else:
         # Input is a file.
         try:
