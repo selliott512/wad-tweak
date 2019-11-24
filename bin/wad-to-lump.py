@@ -217,8 +217,8 @@ def apply_changes():
     region_offset = max_offset + max_size
     for patt, value in amap.items():
         adds += 1
-        bisect.insort(regions, [region_offset, region_number, len(value), "",
-                                patt, None, value, True])
+        bisect.insort(regions, new_region(region_offset, region_number,
+                        len(value), "", patt, None, value, True))
         region_number += 1
         region_offset += len(value)
 
@@ -249,6 +249,11 @@ def message(msg):
     print(msg)
     sys.stdout.flush()
 
+# Create a new region and return it.
+def new_region(offset,  number, size, namespace, name, file_name, contents,
+               is_lump):
+    return [offset, number, size, namespace, name, file_name, contents, is_lump]
+
 # Parse the command line arguments and store the result in 'args'.
 def parse_args():
     global args
@@ -269,6 +274,10 @@ def parse_args():
              "-d, --output-dir.")
     parser.add_argument("-n", "--namespace", action="store_true",
         help="Namespace support. Organize output by namespace.")
+    parser.add_argument("-r", "--offset-order", action="store_true",
+        help="If true then order the output directory based on the offset " +
+        "of the lumps. By default the output directory will have the same " +
+        "order as the input directory.")
     parser.add_argument("-1", "--once", action="store_true",
         help="Each changed region should only occur once by name.")
     parser.add_argument("-o", "--output",
@@ -297,6 +306,44 @@ def parse_args():
               "be specified.")
 
     return args
+
+# Read just the names from a directory, or directory file. "file_ref" is
+# assumed to be a file name if a string, or a file handle otherwise. "offset"
+# is the offset in the file, and "count" is the number of directory entries.
+def read_directory(file_ref, offset, count=None):
+    # Map file_ref to a file handle.
+    if isinstance(file_ref, str):
+        # file_ref is a string.
+        fhand =  open(file_ref, "rb")
+    else:
+        # file_ref is a file handle.
+        fhand = file_ref
+
+    # Seek to the directory.
+    fhand.seek(offset)
+
+    directory = []
+    index = 0
+    while True:
+        if count and (index >= count):
+            # Done.
+            break
+        dent_bytes = fhand.read(16)
+        if len(dent_bytes) < 16:
+            break # short read
+        offset, region_size, region_name = unpack_str("<II8s", dent_bytes)
+        entry = (offset, region_size, region_name.partition("\x00")[0])
+        if len(entry) != 3:
+            fatal("Entry \"" + str(entry) + "\" does not have expected " +
+                  "length 3.")
+        directory.append(entry)
+        index += 1
+
+    # Close it if it was opened.
+    if isinstance(file_ref, str):
+        fhand.close()
+
+    return directory
 
 # Read the regions, both lump and non-lump, into global "regions" in sorted
 # order.
@@ -372,22 +419,81 @@ def read_regions():
             is_lump = (region_name not in non_lumps) and (num != 0)
             if is_lump:
                 lumps_read += 1
-            bisect.insort(regions, [0, num, os.path.getsize(path), current_ns,
-                                    region_name, path, None, is_lump])
+            bisect.insort(regions, new_region(0, num, os.path.getsize(path),
+                        current_ns, region_name, path, None, is_lump))
             first = False
         waddir_count_expected = 1 if in_header else 0
         if waddir_count_expected != waddir_count:
             fatal("There must be one \"waddir\" file if there is a \"header\" " +
                   "file, and zero otherwise.")
+
         if not in_header:
             # If there is no input header then add a stub one now.
-            bisect.insort(regions, [0, 0, 12, "", "header", "", struct.pack(
-                "<4sII", wad_type.encode("UTF-8"), lumps_read, 0), False])
+            bisect.insort(regions, new_region(0, 0, 12, "", "header", "",
+                struct.pack("<4sII", wad_type.encode("UTF-8"), lumps_read, 0),
+                False))
 
             # It's been verified that there is no "waddir", so create a stub
             # for that as well.
-            bisect.insort(regions, [0, num + 1, 0, "", "waddir", "",
-                                    struct.pack(""), False])
+            bisect.insort(regions, new_region(0, num + 1, 0, "", "waddir", "",
+                struct.pack(""), False))
+
+        if waddir_count and not args.offset_order:
+            # Build a map of the directory with an additional element at the end
+            # indicating the index into the directory.
+            index = 0
+            dmap = {}
+            directory = read_directory(path, 0)
+            for dent in directory:
+                low_name = dent[2].lower()
+                if low_name in dmap:
+                    warn("Directory entry \"" + low_name +
+                         "\" found twice. Output may be inaccurate.")
+                dmap[low_name] = dent + (index,)
+                index += 1
+
+            # Build a list of the region numbers for regions that are lumps
+            # (lump_nums_orig), and at the same time build an index correlated list
+            # of indexes into the directory (dir_idxs).
+            lump_nums_orig = []
+            dir_idxs = []
+            for region in regions:
+                if region[r_is_lump]:
+                    lump_nums_orig.append(region[r_number])
+                    low_name = region[r_name].lower()
+                    if not low_name in dmap:
+                        warn("Unable to find region \"" + str(region) +
+                              "\" in external \"waddir\" file. Maintaining " +
+                              "location of lump. Try deleting the " +
+                              "\"waddir\" file if this is not correct.")
+                        dir_idxs.append(len(dir_idxs))
+                    else:
+                        dir_idxs.append(dmap[low_name][3])
+
+            # Build a new list of region numbers (lump_nums_new)
+            lump_nums_new = [-1] * len(lump_nums_orig)
+            for i in range(len(lump_nums_orig)):
+                lump_nums_new[dir_idxs[i]] = lump_nums_orig[i]
+
+            # Apply the new lump numbers to the list of regions.
+            unordered_regions = []
+            for i in range(len(lump_nums_orig)):
+                # Update based on the new sort order.
+                region = regions[lump_nums_new[i]]
+                region[r_number] = lump_nums_orig[i]
+
+                # Changing a key previously used by "insort" does not
+                # automatically cause it to go to the right place. Note it so
+                # it can be removed and re-added.
+                unordered_regions.append(region)
+
+            # Remove the unordered regions.
+            for region in unordered_regions:
+                regions.remove(region)
+
+            # Add the unordered regions back.
+            for region in unordered_regions:
+                bisect.insort(regions, region)
     else:
         # Input is a file.
         try:
@@ -403,27 +509,25 @@ def read_regions():
                       args.path, wad_type, str(wad_types)))
 
         # Add the header to the list of regions.
-        bisect.insort(regions, [0, 0, 12, "", "header", None, None, False])
+        bisect.insort(regions, new_region(0, 0, 12, "", "header", None, None,
+                                          False))
         in_header = True
 
         # Add the directory to the list of regions. The count is the max signed
         # 32 bit integer so that the directory is last.
-        bisect.insort(regions, [directory_offset, (1 << 31) - 1,
-                                directory_entries * 16, "", "waddir", None, None,
-                                False])
+        bisect.insort(regions, new_region(directory_offset, (1 << 31) - 1,
+                        directory_entries * 16, "", "waddir", None, None,
+                        False))
 
         # Seek to the regions and start reading regions.
         current_offset = 0
         region_number = 0
         fhand.seek(directory_offset)
-        for _ in range(directory_entries):
-            dent_bytes = fhand.read(16)
+
+        dir_ents = read_directory(fhand, directory_offset, directory_entries)
+        for dir_ent in dir_ents:
             region_number += 1
-            if len(dent_bytes) < 16:
-                break # short read
-            offset, region_size, region_name = unpack_str(
-                "<II8s", dent_bytes)
-            region_name = region_name.partition("\x00")[0]
+            offset, region_size, region_name = dir_ent
             if region_name.lower() in non_lumps:
                 fatal("Lump name \"" + region_name + "\" is not permitted.")
             region_ns = current_ns
@@ -450,8 +554,8 @@ def read_regions():
                              "\" because the last NS is \"" + final_ns + ".")
                 offset_to_namespace[offset] = current_ns
 
-            region = [offset, region_number, region_size, region_ns,
-                      region_name, None, None, True]
+            region = new_region(offset, region_number, region_size, region_ns,
+                        region_name, None, None, True)
             if not region_name:
                 if offset or region_size:
                     warn("Region (" + (region_fmt % tuple(region)) + ") has no "
@@ -478,17 +582,17 @@ def read_regions():
                 region_number += 1
                 ns_index = bisect.bisect(offsets, current_offset) - 1
                 region_ns = offset_to_namespace[offsets[ns_index]]
-                bisect.insort(regions, [current_offset, region_number,
+                bisect.insort(regions, new_region(current_offset, region_number,
                              region[r_offset] - current_offset, region_ns,
-                                    "notindir", None, None, False])
+                             "notindir", None, None, False))
             current_offset = region[r_offset] + region[r_size]
             last_size = region[r_size]
 
         # Extra space at the end of the WAD?
         if wad_size > current_offset:
-            bisect.insort(regions, [current_offset, 0,
+            bisect.insort(regions, new_region(current_offset, 0,
                           wad_size - current_offset, current_ns, "notindir",
-                          None, None, False])
+                          None, None, False))
 
     # Offset the number of regions.
     extra_reg = 0 if in_header else -2
@@ -610,6 +714,9 @@ def write_regions():
                 region_contents = region[r_contents]
             else:
                 if in_is_dir:
+                    if not region[r_file_name]:
+                        # No file even though directory input - waddir?
+                        continue
                     try:
                         fhand = open(region[r_file_name], "rb")
                     except IOError:
@@ -629,7 +736,8 @@ def write_regions():
             out_fhand.write(region_contents)
             region_name_wad  = region[r_name] if args.case else region[r_name].upper()
             if region[r_is_lump]:
-                directory.append((offset, region[r_size], region_name_wad))
+                bisect.insort(directory, (region[r_number], offset, region[r_size],
+                                          region_name_wad))
                 count += 1
             offset += region[r_size]
         if args.output_dir:
@@ -652,8 +760,8 @@ def write_regions():
     if out_wad:
         # Write the new directory.
         for dent in directory:
-            out_fhand.write(struct.pack("<II8s", *(dent[0:2] + (
-                dent[2].encode("UTF-8"),))))
+            out_fhand.write(struct.pack("<II8s", *(dent[1:3] + (
+                dent[3].encode("UTF-8"),))))
         # Go back to the header to write the directory information.
         out_fhand.seek(4)
         out_fhand.write(struct.pack("<II", count, offset))

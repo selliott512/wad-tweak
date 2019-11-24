@@ -105,6 +105,22 @@ wtl_tests=(
      chmod 644 \$actual_dir/out.wad
      $l -vip \$actual_dir/out.wad _standard_"
 
+    # Test a wad where the directory order is different than the lump order.
+    w-in-wad-order          t
+    "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad"
+
+    # Similar to w-in-wad-order except from an input directory.
+    w-in-dir-order          t
+    "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
+
+    # Similar to w-in-wad-order except lump order.
+    w-in-wad-order-lump     t
+    "$l -rsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad"
+
+    # Similar to w-in-dir-order except lump order.
+    w-in-dir-order-lump     t
+    "$l -rsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
+
     # A command line option that not supported.
     w-bad-option            f
     "$l -v --bad-option" )
