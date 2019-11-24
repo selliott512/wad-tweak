@@ -109,7 +109,7 @@ If the change is preceeded by "+" then a lump is added instead of changing the e
 The usage can be seen by passing "-h" to wad-to-lump.py:
 
 ```txt
-usage: wad-to-lump.py [-h] [-c] [-f] [-i] [-l] [-n] [-1] [-o OUTPUT] [-p]
+usage: wad-to-lump.py [-h] [-c] [-f] [-i] [-l] [-n] [-r] [-1] [-o OUTPUT] [-p]
                       [-d OUTPUT_DIR] [-q] [-s] [-v]
                       path [change [change ...]]
 
@@ -128,6 +128,10 @@ optional arguments:
   -l, --lumps           Lumps. Only output actual lumps for -s, --show and -d,
                         --output-dir. (default: False)
   -n, --namespace       Namespace support. Organize output by namespace.
+                        (default: False)
+  -r, --offset-order    If true then order the output directory based on the
+                        offset of the lumps. By default the output directory
+                        will have the same order as the input directory.
                         (default: False)
   -1, --once            Each changed region should only occur once by name.
                         (default: False)
