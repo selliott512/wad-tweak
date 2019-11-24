@@ -109,9 +109,9 @@ wtl_tests=(
     w-in-wad-order          t
     "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad"
 
-    # Smiilar to w-in-wad-order except from an input directory.
-    # w-in-dir-order          t
-    # "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
+    # Similar to w-in-wad-order except from an input directory.
+    w-in-dir-order          t
+    "$l -svfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
 
     # A command line option that not supported.
     w-bad-option            f

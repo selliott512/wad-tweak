@@ -476,8 +476,24 @@ def read_regions():
                 lump_nums_new[dir_idxs[i]] = lump_nums_orig[i]
 
             # Apply the new lump numbers to the list of regions.
+            unordered_regions = []
             for i in range(len(lump_nums_orig)):
-                regions[lump_nums_orig[i]][r_number] = lump_nums_new[i]
+                # Update based on the new sort order.
+                region = regions[lump_nums_new[i]]
+                region[r_number] = lump_nums_orig[i]
+
+                # Changing a key previously used by "insort" does not
+                # automatically cause it to go to the right place. Note it so
+                # it can be removed and re-added.
+                unordered_regions.append(region)
+
+            # Remove the unordered regions.
+            for region in unordered_regions:
+                regions.remove(region)
+
+            # Add the unordered regions back.
+            for region in unordered_regions:
+                bisect.insort(regions, region)
     else:
         # Input is a file.
         try:
