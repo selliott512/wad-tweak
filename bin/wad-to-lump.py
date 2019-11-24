@@ -438,7 +438,7 @@ def read_regions():
             bisect.insort(regions, new_region(0, num + 1, 0, "", "waddir", "",
                 struct.pack(""), False))
 
-        if waddir_count:
+        if waddir_count and not args.offset_order:
             # Build a map of the directory with an additional element at the end
             # indicating the index into the directory.
             index = 0
@@ -736,8 +736,7 @@ def write_regions():
             out_fhand.write(region_contents)
             region_name_wad  = region[r_name] if args.case else region[r_name].upper()
             if region[r_is_lump]:
-                number = region[r_number] if args.offset_order else region[r_number]
-                bisect.insort(directory, (number, offset, region[r_size],
+                bisect.insort(directory, (region[r_number], offset, region[r_size],
                                           region_name_wad))
                 count += 1
             offset += region[r_size]
