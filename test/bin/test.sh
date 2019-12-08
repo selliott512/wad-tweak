@@ -121,6 +121,14 @@ wtl_tests=(
     w-in-dir-order-lump     t
     "$l -rsvfo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in-dir"
 
+    # Test displaying the directory names when reading from a WAD.
+    w-in-wad-dir-names      t
+    "$l -vx \$source_dir/in.wad"
+
+    # Test displaying the directory names when reading from a directory.
+    w-in-dir-dir-names      t
+    "$l -vx \$source_dir/in-dir"
+
     # A command line option that not supported.
     w-bad-option            f
     "$l -v --bad-option" )

@@ -265,6 +265,9 @@ def parse_args():
     # The following is sorted by long argument.
     parser.add_argument("-c", "--case", action="store_true",
         help="Maintain the case of regions.")
+    parser.add_argument("-x", "--dir-names", action="store_true",
+        help="Output (eXamine) the lump names in the directory in directory " +
+        "order separated by spaces. Only applicable if a directory is read.")
     parser.add_argument("-f", "--force", action="store_true",
         help="Force. Overwrite existing output.")
     parser.add_argument("-i", "--invert", action="store_true",
@@ -319,6 +322,10 @@ def read_directory(file_ref, offset, count=None):
         # file_ref is a file handle.
         fhand = file_ref
 
+    # Build a list of directory names if requested.
+    if args.dir_names:
+        dir_names = ""
+
     # Seek to the directory.
     fhand.seek(offset)
 
@@ -336,12 +343,17 @@ def read_directory(file_ref, offset, count=None):
         if len(entry) != 3:
             fatal("Entry \"" + str(entry) + "\" does not have expected " +
                   "length 3.")
+        if args.dir_names:
+            dir_names += " " + entry[2] if dir_names else entry[2]
         directory.append(entry)
         index += 1
 
     # Close it if it was opened.
     if isinstance(file_ref, str):
         fhand.close()
+
+    if args.dir_names:
+        print("Directory names: " + dir_names)
 
     return directory
 

@@ -1,0 +1,3 @@
+Directory names: LUMPA LUMPB LUMPC
+  5 regions read        (  3 lumps,   2 non-lumps) from directory "wad-tweak/test/data/source/w-in-dir-dir-names/in-dir".
+  5 regions not written (  3 lumps,   2 non-lumps).
