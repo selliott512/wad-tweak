@@ -109,8 +109,8 @@ If the change is preceeded by "+" then a lump is added instead of changing the e
 The usage can be seen by passing "-h" to wad-to-lump.py:
 
 ```txt
-usage: wad-to-lump.py [-h] [-c] [-f] [-i] [-l] [-n] [-r] [-1] [-o OUTPUT] [-p]
-                      [-d OUTPUT_DIR] [-q] [-s] [-v]
+usage: wad-to-lump.py [-h] [-c] [-x] [-f] [-i] [-l] [-n] [-r] [-1] [-o OUTPUT]
+                      [-p] [-d OUTPUT_DIR] [-q] [-s] [-v]
                       path [change [change ...]]
 
 Doom WAD files and directories to and from lump files.
@@ -122,6 +122,9 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -c, --case            Maintain the case of regions. (default: False)
+  -x, --dir-names       Output (eXamine) the lump names in the directory in
+                        directory order separated by spaces. Only applicable
+                        if a directory is read. (default: False)
   -f, --force           Force. Overwrite existing output. (default: False)
   -i, --invert          Invert. Invert the meaning of bare (no "=") lumps.
                         (default: False)
@@ -220,6 +223,16 @@ Only lumps are included in the above output due to the lumps (-l) option. When w
 It's possible to change the lumps in various ways as shown in the previous examples. If the change is preceded by "+" then a new lump is added instead of changing the existing lumps. For example, to add the contents of "mybehavior.o", which was compiled by the ACC compiler, as the "BEHAVIOR" lump to "comcon.wad":
 ```shell
 wad-to-lump.py -vp comcon.wad +behavior=:mybehavior.o
+```
+
+##### Directory Names
+
+To see the lump names in the directory in directory order (-x, --dir-names option):
+```shell
+wad-to-lump.py -vx comcon.wad
+Directory names: ENDOOM DEMO1 E1M4 THINGS LINEDEFS SIDEDEFS VERTEXES SEGS SSECTORS NODES SECTORS REJECT BLOCKMAP D_E1M4 CREDIT
+ 17 regions read        ( 15 lumps,   2 non-lumps) from WAD       "comcon.wad".
+ 17 regions not written ( 15 lumps,   2 non-lumps).
 ```
 
 ##### Complicated
