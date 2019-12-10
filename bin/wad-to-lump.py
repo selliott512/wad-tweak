@@ -50,8 +50,19 @@ lump_groups = {
     # Empty lumps that mark the begin and end of each namespace.
     "_ns_"      : ".*_(START|END)",
 
-    # The ten standard lumps that should be in all WADs in this order preceded
-    # by the empty name lump.
+    # The non-built lumps in a standard plain vanilla Doom PWAD. This is the
+    # preferred order. These are sufficient for GZDoom.
+    "_base_"    : ("_name_", "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES",
+                   "SECTORS"),
+
+    # The built (node builder) lumps in a standard plain vanilla Doom PWAD.
+    # This is the preferred order. There are other kinds of built nodes, but
+    # not in the original Doom.
+    "_built_"    : ("SEGS", "SSECTORS", "NODES", "REJECT", "BLOCKMAP"),
+
+    # The 11 standard lumps in a standard plain vanilla Doom PWAD. This is the
+    # preferred order. See https://zdoom.org/wiki/WAD . Note that BEHAVIOR and
+    # SCRIPTS are not included because they are not in the original Doom.
     "_standard_": ("_name_", "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES",
                    "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT",
                    "BLOCKMAP")}
