@@ -9,19 +9,19 @@ See the "doc" directory for license and version information.
 For all command line tools [Python](https://www.python.org/) 3 is required. For wad-shuffle-dir.py [DeuTex](https://doomwiki.org/wiki/DeuTex) is required in addition to Python.
 
 wad-tweak can be downloaded from GitHub:
-* [latest stable version](https://github.com/selliott512/wad-tweak/archive/0.9.3.zip) (recommended)
+* [latest stable version](https://github.com/selliott512/wad-tweak/archive/0.9.4.zip) (recommended)
 * [latest version](https://github.com/selliott512/wad-tweak/archive/master.zip)
 
 wad-tweak can be installed by unzipping it to the desired location. Once installed commands can be run directly:
 ```shell
-unzip wad-tweak-0.9.3.zip
-wad-tweak-0.9.3/bin/wad-to-lump.py ...
-wad-tweak-0.9.3/bin/wad-shuffle-dir.py ...
+unzip wad-tweak-0.9.4.zip
+wad-tweak-0.9.4/bin/wad-to-lump.py ...
+wad-tweak-0.9.4/bin/wad-shuffle-dir.py ...
 ```
 Optionally the path can be set so that the commands can be run from anywhere without specifying the full path. For example:
 ```shell
-unzip -d /opt wad-tweak-0.9.3.zip # Requires root.
-PATH="$PATH:/opt/wad-tweak-0.9.3/bin"
+unzip -d /opt wad-tweak-0.9.4.zip # Requires root.
+PATH="$PATH:/opt/wad-tweak-0.9.4/bin"
 wad-to-lump.py ...
 wad-shuffle-dir.py ...
 ```
