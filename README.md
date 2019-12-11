@@ -235,6 +235,16 @@ Directory names: ENDOOM DEMO1 E1M4 THINGS LINEDEFS SIDEDEFS VERTEXES SEGS SSECTO
  17 regions not written ( 15 lumps,   2 non-lumps).
 ```
 
+##### Lump Groups
+
+In the above examples "\_standard\_" makes an appearance as a lump group - a token that can be passed as a change that represents a group of lumps. Lump groups are defined relative to the original plain vanilla Doom. See https://zdoom.org/wiki/WAD for an explanation of each lump. An alphabetical list of change groups along with their definitions:
+
+* **_base_**: The 6 non-built lumps in a standard plain vanilla Doom PWAD. These lumps are sufficient for GZDoom. Lumps: `_name_, THINGS, LINEDEFS, SIDEDEFS, VERTEXES, SECTORS`
+* **_built_**: The 5 built (node builder) lumps in a standard plain vanilla Doom PWAD. There are other kinds of built nodes, but not in the original Doom. Lumps: `SEGS, SSECTORS, NODES, REJECT, BLOCKMAP`
+* **_name_**: The name lump. This should be the first lump. Lumps: `E\dM\d|MAP\d\d`
+* **_ns_**: Empty lumps that mark the begin and end of each namespace. Lumps; `.*_(START|END)`
+* **_standard_**: The 11 standard lumps in a standard plain vanilla Doom PWAD. Lumps: `_name_, THINGS, LINEDEFS, SIDEDEFS, VERTEXES, SEGS, SSECTORS, NODES, SECTORS, REJECT, BLOCKMAP`
+
 ##### Complicated
 
 An example to demonstrate many options at once. Verbosely (-v) show (-s) the regions, but only if they are lumps (-l) in the previously created "comcon" directory. Write output to output directory (-d) "comcon2" and to output WAD file (-o) "comcon2.wad". Replace region "THINGS" with the contents of file "things-file". Replace the contents of region "DEMO01" with string "This is a demo". Delete region "SECTORS". Use the original region name case for the files created (-c). If the output directory already exists then overwrite it (-f). If a changed region occurs more than once then only keep the first occurrence (-1):
