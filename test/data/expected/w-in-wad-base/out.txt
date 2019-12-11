@@ -1,0 +1,4 @@
+ 23 regions read        ( 18 lumps,   5 non-lumps) from WAD       "wad-tweak/test/data/source/w-in-wad-base/in.wad".
+ 15 regions changed     (  0 adds,   0 modifies,  15 deletes).
+  8 regions written     (  6 lumps,   2 non-lumps)   to WAD       "/tmp/wad-tweak-test.sh.PID/w-in-wad-base/out.wad".
+  8 regions written     (  6 lumps,   2 non-lumps)   to directory "/tmp/wad-tweak-test.sh.PID/w-in-wad-base/out-dir".

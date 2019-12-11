@@ -128,6 +128,14 @@ wtl_tests=(
     # Test displaying the directory names when reading from a directory.
     w-in-dir-dir-names      t
     "$l -vx \$source_dir/in-dir"
+    
+    # Test the _base_ change group.
+    w-in-wad-base           t
+    "$l -vifo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad _base_"
+
+    # Test the _built_ change group.
+    w-in-wad-built          t
+    "$l -vifo \$actual_dir/out.wad -d \$actual_dir/out-dir \$source_dir/in.wad _built_"
 
     # A command line option that not supported.
     w-bad-option            f
