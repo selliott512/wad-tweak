@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: BSD-3-Clause
+
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # wad2lump - Convert  WAD files and directories to and from each other
 #
