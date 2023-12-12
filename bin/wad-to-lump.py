@@ -2,7 +2,7 @@
 
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# wad2lump - Convert  WAD files and directories to and from each other
+# wad-to-lump - Convert  WAD files and directories to and from each other
 #
 # This utility can take a WAD file as input and produce a directory that
 # contains one file for each region in the WAD file. The directory will be
