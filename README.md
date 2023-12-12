@@ -15,15 +15,17 @@ wad-tweak can be downloaded from GitHub:
 wad-tweak can be installed by unzipping it to the desired location. Once installed commands can be run directly:
 ```shell
 unzip wad-tweak-0.9.5.zip
-wad-tweak-0.9.5/bin/wad-to-lump.py ...
+wad-tweak-0.9.5/bin/endoom-tool.py ...
 wad-tweak-0.9.5/bin/wad-shuffle-dir.py ...
+wad-tweak-0.9.5/bin/wad-to-lump.py ...
 ```
 Optionally the path can be set so that the commands can be run from anywhere without specifying the full path. For example:
 ```shell
 unzip -d /opt wad-tweak-0.9.5.zip # Requires root.
 PATH="$PATH:/opt/wad-tweak-0.9.5/bin"
-wad-to-lump.py ...
+endoom-tool.py ...
 wad-shuffle-dir.py ...
+wad-to-lump.py ...
 ```
 
 There's small test suite, but you probably don't care about it:
@@ -31,7 +33,104 @@ There's small test suite, but you probably don't care about it:
 test/bin/test.sh
 ```
 
-The rest of this document describes each command in detail.
+The rest of this document describes each command in detail. They are listed in alphabetical order.
+
+## endoom-tool.py
+
+endoom-tool.py can be used to display, split, cleanup and join ENDOOM lumps.
+
+#### endoom-tool.py Usage
+
+The usage can be seen by passing "-h" to wad-shuffle-dir.py:
+
+```txt
+usage: endoom-tool.py (-d | -h | -j JOIN-DIRECTORY | -s SPLIT-DIRECTORY) [-c] [-p] [-q] [-r] [-t] ENDOOM [ENDOOM ...]
+
+Process the specified ENDOOM lumps.
+
+positional arguments:
+  ENDOOM                ENDOOM lump to process.
+
+Commands:
+  Specify exactly one command option
+
+  -d, --display         Display command. Display the ENDOOM lump. (default: False)
+  -h, --help            Help. Show this help message and exit.
+  -j JOIN-DIRECTORY, --join JOIN-DIRECTORY
+                        Join command. Join the directory previously created by --split to form an ENDOOM lump. (default: None)
+  -s SPLIT-DIRECTORY, --split SPLIT-DIRECTORY
+                        Split command. Split the ENDOOM lump into foreground, background and text in the specified directory. (default: None)
+
+Options:
+  Options that modify command behavior
+
+  -c, --clean           Clean. Make foreground equal to background for spaces, and convert to space when foreground and background is the same color. Recommended when the exact ENDOOM does not need to be maintained. This option has no
+                        effect with -j, --join. (default: False)
+  -p, --plain           Plain. Disable all ANSI color effects. For -j, --join this means to use white and black instead of what's in the foreground and background files before any other color processing. (default: False)
+  -q, --quiet           Quiet. Disable some warnings and noise. (default: False)
+  -r, --random-colors   Random colors. Make the colors a hash of two bytes associated with each character in order to make it easier to see inconsistencies that are otherwise hidden. (default: False)
+  -t, --tolerant        Tolerate missing data. Missing files and data are considered to be black spaces. (default: False)
+```
+
+#### endoom-tool.py Examples
+
+See the comment in `endoom-tool.py` for multiple examples.
+
+Display the ENDOOM lump in file `lumps/endoom.lmp`:
+```shell
+endoom-tool.py -d lumps/endoom.lmp
+```
+
+## wad-shuffle-dir.py
+
+wad-shuffle-dir.py shuffles the lumps for specified lump types and writes the result to a directory. For example, if the sprites lump type was specified via "-sprites" and there were sprite lumps "A", "B" and "C". The result might be "C", "A", "B'. Although the result is strange, flickering, and is visually dissonant it can make for a interesting challenge. The output is a directory that can be passed to ZDoom and its descendants via the "-file" option:
+```shell
+gzdoom -file output-directory
+```
+where "output-directory" is created by wad-shuffle-dir.py. "output-directory" can be zipped up to produce a PK3 file.
+
+#### wad-shuffle-dir.py Usage
+
+The usage can be seen by passing "-h" to wad-shuffle-dir.py:
+
+```txt
+usage: wad-shuffle-dir.py [-h] [-d DEUTEX_PATH] [-f] [-i] [-k] [-s SEED] [-v]
+                          IWAD OUT-DIR [LUMP [LUMP ...]]
+
+Shuffle lumps in Doom IWADs and write to a directory.
+
+positional arguments:
+  IWAD                  IWAD file.
+  OUT-DIR               Output directory.
+  LUMP                  Lump types to select. (default: ['sprites'])
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DEUTEX_PATH, --deutex-path DEUTEX_PATH
+                        Path to "deutex". (default: deutex)
+  -f, --force           Force. Write to OUT-DIR even if it exists. (default:
+                        False)
+  -i, --invert          Invert the lump types specified. (default: False)
+  -k, --keep            Keep the temporary directory. (default: False)
+  -s SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -v, --verbose         Verbose output. (default: False)
+```
+
+#### wad-shuffle-dir.py Examples
+
+##### Simple
+
+Shuffle the sprites in "doom2.wad" in order to create a shuffled output directory at "/tmp/shuffled-sprites":
+```shell
+wad-shuffle-dir.py doom2.wad /tmp/shuffled-sprites
+```
+
+##### Complicated
+
+Shuffle the flats, sounds and sprites lumps in "doom2.wad" in order to create a shuffled output directory "/tmp/shuffled". Keep temporary files (-k), run verbosely (-v) and forcefully overwrite the output directory (-f) at "/tmp/shuffled":
+```shell
+wad-shuffle-dir.py -kvf doom2.wad /tmp/shuffled flats sprites sounds
+```
 
 ## wad-to-lump.py
 
@@ -250,55 +349,4 @@ In the above examples "\_standard\_" makes an appearance as a lump group - a tok
 An example to demonstrate many options at once. Verbosely (-v) show (-s) the regions, but only if they are lumps (-l) in the previously created "comcon" directory. Write output to output directory (-d) "comcon2" and to output WAD file (-o) "comcon2.wad". Replace region "THINGS" with the contents of file "things-file". Replace the contents of region "DEMO01" with string "This is a demo". Delete region "SECTORS". Use the original region name case for the files created (-c). If the output directory already exists then overwrite it (-f). If a changed region occurs more than once then only keep the first occurrence (-1):
 ```shell
 wad-to-lump.py -vslfc1 -d comcon2 -o comcon2.wad comcon things=:things-file demo1="This is a demo" sectors
-```
-
-## wad-shuffle-dir.py
-
-wad-shuffle-dir.py shuffles the lumps for specified lump types and writes the result to a directory. For example, if the sprites lump type was specified via "-sprites" and there were sprite lumps "A", "B" and "C". The result might be "C", "A", "B'. Although the result is strange, flickering, and is visually dissonant it can make for a interesting challenge. The output is a directory that can be passed to ZDoom and its descendants via the "-file" option:
-```shell
-gzdoom -file output-directory
-```
-where "output-directory" is created by wad-shuffle-dir.py. "output-directory" can be zipped up to produce a PK3 file.
-
-#### wad-shuffle-dir.py Usage
-
-The usage can be seen by passing "-h" to wad-shuffle-dir.py:
-
-```txt
-usage: wad-shuffle-dir.py [-h] [-d DEUTEX_PATH] [-f] [-i] [-k] [-s SEED] [-v]
-                          IWAD OUT-DIR [LUMP [LUMP ...]]
-
-Shuffle lumps in Doom IWADs and write to a directory.
-
-positional arguments:
-  IWAD                  IWAD file.
-  OUT-DIR               Output directory.
-  LUMP                  Lump types to select. (default: ['sprites'])
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -d DEUTEX_PATH, --deutex-path DEUTEX_PATH
-                        Path to "deutex". (default: deutex)
-  -f, --force           Force. Write to OUT-DIR even if it exists. (default:
-                        False)
-  -i, --invert          Invert the lump types specified. (default: False)
-  -k, --keep            Keep the temporary directory. (default: False)
-  -s SEED, --seed SEED  Seed for the random number generator. (default: None)
-  -v, --verbose         Verbose output. (default: False)
-```
-
-#### wad-shuffle-dir.py Examples
-
-##### Simple
-
-Shuffle the sprites in "doom2.wad" in order to create a shuffled output directory at "/tmp/shuffled-sprites":
-```shell
-wad-shuffle-dir.py doom2.wad /tmp/shuffled-sprites
-```
-
-##### Complicated
-
-Shuffle the flats, sounds and sprites lumps in "doom2.wad" in order to create a shuffled output directory "/tmp/shuffled". Keep temporary files (-k), run verbosely (-v) and forcefully overwrite the output directory (-f) at "/tmp/shuffled":
-```shell
-wad-shuffle-dir.py -kvf doom2.wad /tmp/shuffled flats sprites sounds
 ```
