@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: BSD-3-Clause
+
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # endoom-tool - Display, split, cleanup and join ENDOOM lumps
 #
 # This script can be used to work with ENDOOM lumps. To see the ENDOOM lumps
-# used by Freedoom the following make target can be used:
-#   make display-endooms
+# used by Freedoom the following can be used:
+#   for ed in lumps/endoom*.lmp; do echo; echo "ENDOOM lump $ed:"; endoom-tool -d "$ed"; done
 # There are other tools to work with ENDOOM lumps, such as Playscii, but this
 # tool can be helpful in some cases.
 #
